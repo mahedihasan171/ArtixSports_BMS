@@ -85,6 +85,7 @@
       <div class="brand">ArtixSport BMS</div>
       <div class="nav-item active" data-view="dashboard">Dashboard</div>
       <div class="nav-item" data-view="products">Products</div>
+      <div class="nav-item" data-view="catalog">Catalog Setup</div>
       <div class="nav-item soon" data-view="customers">Customers</div>
       <div class="nav-item soon" data-view="vendors">Vendors</div>
       <div class="nav-item soon" data-view="purchases">Purchases</div>
@@ -124,6 +125,17 @@
     var currentContext = null; // { business, membership, role, permissions }
     var myBusinesses = [];
 
+    // Simple per-business, per-view cache. Nav clicks between
+    // already-visited screens render instantly from here instead of
+    // re-fetching every time — a real network round-trip only happens
+    // on first visit or an explicit Refresh click.
+    var viewCache = {}; // { businessId: { products: {...}, catalog: {...} } }
+    function getCache(view) { return viewCache[currentBusinessId] && viewCache[currentBusinessId][view]; }
+    function setCache(view, data) {
+      if (!viewCache[currentBusinessId]) viewCache[currentBusinessId] = {};
+      viewCache[currentBusinessId][view] = data;
+    }
+
     function callAppsScript(action, extra) {
       var body = Object.assign({ action: action }, extra || {});
       return fetch(APPS_SCRIPT_URL, {
@@ -157,10 +169,12 @@
     }
 
     /**
-     * Runs once on page load. If a session was saved before a refresh,
-     * verify it's still valid (a token can expire/be revoked between
-     * page loads) and resume straight into the app — never silently
-     * trust a stored token without checking it against the server.
+     * Runs once on page load. Decides SYNCHRONOUSLY (before any fetch)
+     * whether to show the login form (no saved session — no loading
+     * flash needed) or keep showing "Loading…" (already visible by
+     * default) while a saved token gets validated. The two independent
+     * calls needed to resume (list businesses for the switcher, select
+     * the last-used business) run in PARALLEL, not sequentially.
      */
     function tryResumeSession() {
       var savedToken = sessionStorage.getItem('artix_session_token');
@@ -168,28 +182,36 @@
       var savedBusinessId = sessionStorage.getItem('artix_current_business_id');
 
       if (!savedToken || !savedUser) {
-        // Nothing saved — go straight to the login form, no loading flash.
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('loginScreen').style.display = 'block';
         return;
       }
 
-      // A saved session exists — keep showing "Loading…" (already visible
-      // by default) while we validate it against the server.
       currentSessionToken = savedToken;
       currentUser = JSON.parse(savedUser);
 
-      callWithSession('listMyBusinesses', {}).then(function (result) {
-        if (!result.success) {
+      var savedBizPromise = savedBusinessId
+        ? callWithSession('selectBusiness', { businessId: savedBusinessId })
+        : Promise.resolve(null);
+
+      Promise.all([callWithSession('listMyBusinesses', {}), savedBizPromise]).then(function (results) {
+        var listResult = results[0];
+        var bizResult = results[1];
+
+        if (!listResult.success) {
           clearSavedSession();
           document.getElementById('loadingScreen').style.display = 'none';
           document.getElementById('loginScreen').style.display = 'block';
           return;
         }
-        myBusinesses = result.data;
+        myBusinesses = listResult.data;
         document.getElementById('loadingScreen').style.display = 'none';
-        if (savedBusinessId && myBusinesses.some(function (b) { return b.businessId === savedBusinessId; })) {
-          selectBusiness(savedBusinessId);
+
+        if (bizResult && bizResult.success && myBusinesses.some(function (b) { return b.businessId === savedBusinessId; })) {
+          currentBusinessId = savedBusinessId;
+          currentContext = bizResult.data;
+          sessionStorage.setItem('artix_current_business_id', savedBusinessId);
+          enterApp();
         } else {
           document.getElementById('bizSelectScreen').style.display = 'block';
           renderBusinessList();
@@ -210,7 +232,7 @@
     }
 
     // ============================================================
-    // Business Selection — resolved once, switchable via topbar dropdown
+    // Business Selection
     // ============================================================
     function showBusinessSelector() {
       document.getElementById('loginScreen').style.display = 'none';
@@ -242,15 +264,14 @@
       callWithSession('selectBusiness', { businessId: businessId }).then(function (result) {
         if (!result.success) { alert('Could not select business: ' + result.message); return; }
         currentBusinessId = businessId;
-        currentContext = result.data; // { business, membership, role, permissions }
+        currentContext = result.data;
         sessionStorage.setItem('artix_current_business_id', businessId);
         enterApp();
       });
     }
 
     // ============================================================
-    // App shell — Current User + Business resolved and displayed
-    // once, auto-populated everywhere below, never re-asked.
+    // App shell
     // ============================================================
     function enterApp() {
       document.getElementById('bizSelectScreen').style.display = 'none';
@@ -290,25 +311,26 @@
       renderView('dashboard');
     }
 
-    // Run on initial page load — attempts to resume a saved session
-    // before falling back to showing the login screen.
-    tryResumeSession();
-
     function fmt(n) {
       if (typeof n !== 'number') return '—';
       return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // ============================================================
-    // Dashboard — fully working, renders every Phase 15 figure
-    // ============================================================
     function renderView(view) {
       var container = document.getElementById('viewContainer');
       if (view === 'products') { renderProducts(container); return; }
+      if (view === 'catalog') { renderCatalog(container); return; }
       if (view !== 'dashboard') {
         container.innerHTML = '<div class="placeholder">This section (' + view + ') is coming in the next build pass.</div>';
         return;
       }
+      renderDashboard(container);
+    }
+
+    // ============================================================
+    // Dashboard
+    // ============================================================
+    function renderDashboard(container) {
       container.innerHTML = '<div class="placeholder">Loading dashboard…</div>';
 
       if (currentContext.permissions.indexOf('PROFIT_ALLOCATION_VIEW') === -1) {
@@ -373,16 +395,35 @@
       return html;
     }
 
+    function optionsFor_(list, idKey, labelKey) {
+      return list.map(function (item) {
+        return '<option value="' + item[idKey] + '">' + item[labelKey] + '</option>';
+      }).join('');
+    }
+
+    function refreshButton_(view, label) {
+      return '<button class="btn-secondary" id="refreshBtn_' + view + '">↻ ' + (label || 'Refresh') + '</button>';
+    }
+
     // ============================================================
-    // Products — Category/Brand/ProductType/Unit all resolved from
-    // real Master Data via dropdowns, never a manually-typed ID.
-    // Scoped to simple (non-variant) products this pass — variant
-    // creation/management is a separate, larger UI, deferred on
-    // purpose, not silently missing.
+    // Products — Category/Brand/ProductType/Unit resolved from real
+    // Master Data via dropdowns (managed on the separate Catalog Setup
+    // screen), never a manually-typed ID. Scoped to simple (non-
+    // variant) products this pass — variant creation/management is a
+    // separate, larger UI, deferred on purpose, not silently missing.
+    // Cached per business — a nav click back to Products after visiting
+    // another screen renders instantly; only first-visit or an
+    // explicit Refresh click hits the network.
     // ============================================================
     var productsPageData = { categories: [], brands: [], productTypes: [], units: [], products: [] };
 
-    function renderProducts(container) {
+    function renderProducts(container, forceRefresh) {
+      var cached = getCache('products');
+      if (cached && !forceRefresh) {
+        productsPageData = cached;
+        drawProductsScreen(container);
+        return;
+      }
       container.innerHTML = '<div class="placeholder">Loading products…</div>';
       Promise.all([
         callWithSession('listCategories', { businessId: currentBusinessId }),
@@ -393,37 +434,31 @@
       ]).then(function (results) {
         var failed = results.find(function (r) { return !r.success; });
         if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
-        productsPageData.categories = results[0].data;
-        productsPageData.brands = results[1].data;
-        productsPageData.productTypes = results[2].data;
-        productsPageData.units = results[3].data;
-        productsPageData.products = results[4].data;
+        productsPageData = {
+          categories: results[0].data, brands: results[1].data, productTypes: results[2].data,
+          units: results[3].data, products: results[4].data
+        };
+        setCache('products', productsPageData);
         drawProductsScreen(container);
       }).catch(function (err) {
         container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>';
       });
     }
 
-    function optionsFor_(list, idKey, labelKey) {
-      return list.map(function (item) {
-        return '<option value="' + item[idKey] + '">' + item[labelKey] + '</option>';
-      }).join('');
-    }
-
     function drawProductsScreen(container) {
       var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
       var d = productsPageData;
 
-      var html = '<div class="header-row"><div></div>';
-      if (canManage) html += '<button class="btn" id="toggleCreateProductForm">+ New Product</button>';
-      html += '</div>';
+      var html = '<div class="header-row"><div></div><div>' + refreshButton_('products');
+      if (canManage) html += ' <button class="btn" id="toggleCreateProductForm">+ New Product</button>';
+      html += '</div></div>';
 
       if (canManage) {
         var hasPrereqs = d.categories.length > 0 && d.productTypes.length > 0 && d.units.length > 0;
         html += '<div class="form-panel" id="createProductForm" style="display:none;">';
         if (!hasPrereqs) {
           html += '<p style="color:#b5730a">You need at least one Category, ProductType, and Unit before creating a Product. '
-            + '(Category/ProductType/Unit management screens are coming in a later pass — for now these can be created via the API directly.)</p>';
+            + 'Go to "Catalog Setup" in the sidebar to add them.</p>';
         } else {
           html += '<div class="form-row">'
             + '<div class="form-field"><label>Product Name</label><input type="text" id="newProductName"></div>'
@@ -461,9 +496,7 @@
             + '<td>' + (ptype ? ptype.typeName : '—') + '</td>'
             + '<td>' + (p.hasVariants ? 'Yes' : 'No') + '</td>'
             + '<td><span class="status-pill status-' + p.status + '">' + p.status + '</span></td>';
-          if (canManage) {
-            html += '<td>' + statusActionButtons_(p) + '</td>';
-          }
+          if (canManage) html += '<td>' + statusActionButtons_(p) + '</td>';
           html += '</tr>';
         });
         html += '</tbody></table>';
@@ -471,23 +504,25 @@
 
       container.innerHTML = html;
 
+      var refreshBtn = document.getElementById('refreshBtn_products');
+      if (refreshBtn) refreshBtn.onclick = function () { renderProducts(container, true); };
+
       if (canManage) {
         var formEl = document.getElementById('createProductForm');
-        document.getElementById('toggleCreateProductForm').onclick = function () {
-          formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none';
-        };
+        var toggleBtn = document.getElementById('toggleCreateProductForm');
+        if (toggleBtn) toggleBtn.onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
         var cancelBtn = document.getElementById('cancelCreateProduct');
         if (cancelBtn) cancelBtn.onclick = function () { formEl.style.display = 'none'; };
         var submitBtn = document.getElementById('submitCreateProduct');
         if (submitBtn) submitBtn.onclick = submitCreateProduct;
 
-        document.querySelectorAll('[data-status-action]').forEach(function (btn) {
+        container.querySelectorAll('[data-status-action]').forEach(function (btn) {
           btn.onclick = function () {
             var productId = btn.getAttribute('data-product-id');
             var newStatus = btn.getAttribute('data-status-action');
             callWithSession('setProductStatus', { businessId: currentBusinessId, productId: productId, status: newStatus }).then(function (result) {
               if (!result.success) { alert(result.message); return; }
-              renderProducts(container);
+              renderProducts(container, true);
             });
           };
         });
@@ -512,7 +547,7 @@
         productTypeId: document.getElementById('newProductType').value,
         brandId: document.getElementById('newProductBrand').value || undefined,
         description: document.getElementById('newProductDescription').value.trim() || undefined,
-        hasVariants: false, // this pass covers simple products only — see the design note in the code
+        hasVariants: false,
         defaultUnitId: document.getElementById('newProductUnit').value,
         defaultSku: document.getElementById('newProductSku').value.trim() || undefined,
         defaultSellingPrice: document.getElementById('newProductPrice').value ? parseFloat(document.getElementById('newProductPrice').value) : undefined
@@ -522,11 +557,180 @@
 
       callWithSession('createProduct', { businessId: currentBusinessId, input: input }).then(function (result) {
         if (!result.success) { errorEl.innerText = result.message; return; }
-        renderView('products'); // refresh nav to Products and reload the list
+        var container = document.getElementById('viewContainer');
+        renderProducts(container, true); // force refresh since data changed
       }).catch(function (err) {
         errorEl.innerText = 'Network/server error: ' + err;
       });
     }
+
+    // ============================================================
+    // Catalog Setup — Category (max 2 levels), Brand, ProductType,
+    // Unit (base/derived conversion). The single, sole place these
+    // are managed (Products screen only reads them via dropdowns).
+    // Cached per business, same pattern as Products.
+    // ============================================================
+    var catalogData = { categories: [], brands: [], productTypes: [], units: [] };
+
+    function renderCatalog(container, forceRefresh) {
+      var cached = getCache('catalog');
+      if (cached && !forceRefresh) {
+        catalogData = cached;
+        drawCatalogScreen(container);
+        return;
+      }
+      container.innerHTML = '<div class="placeholder">Loading catalog…</div>';
+      Promise.all([
+        callWithSession('listCategories', { businessId: currentBusinessId }),
+        callWithSession('listBrands', { businessId: currentBusinessId }),
+        callWithSession('listProductTypes', { businessId: currentBusinessId }),
+        callWithSession('listUnits', { businessId: currentBusinessId })
+      ]).then(function (results) {
+        var failed = results.find(function (r) { return !r.success; });
+        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
+        catalogData = { categories: results[0].data, brands: results[1].data, productTypes: results[2].data, units: results[3].data };
+        setCache('catalog', catalogData);
+        // Products' own cache may now be stale (its dropdowns read this same Master Data) — clear it so its next visit re-fetches.
+        if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].products;
+        drawCatalogScreen(container);
+      }).catch(function (err) {
+        container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>';
+      });
+    }
+
+    function drawCatalogScreen(container) {
+      var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
+      var html = '<div class="header-row"><div></div><div>' + refreshButton_('catalog') + '</div></div>';
+      html += catalogSection_('Categories', 'category', canManage, catalogCategoryFormFields_(), catalogCategoryRows_());
+      html += catalogSection_('Brands', 'brand', canManage, '<div class="form-field"><label>Brand Name</label><input type="text" id="new_brand_name"></div>', catalogSimpleRows_(catalogData.brands, 'brandId', 'brandName'));
+      html += catalogSection_('Product Types', 'productType', canManage, '<div class="form-field"><label>Type Name</label><input type="text" id="new_productType_name"></div>', catalogSimpleRows_(catalogData.productTypes, 'productTypeId', 'typeName'));
+      html += catalogSection_('Units', 'unit', canManage, catalogUnitFormFields_(), catalogUnitRows_());
+      container.innerHTML = html;
+
+      var refreshBtn = document.getElementById('refreshBtn_catalog');
+      if (refreshBtn) refreshBtn.onclick = function () { renderCatalog(container, true); };
+
+      wireCatalogHandlers_(container, canManage);
+    }
+
+    function catalogSection_(title, key, canManage, formFieldsHtml, rowsHtml) {
+      var html = '<div class="header-row"><div class="section-title" style="margin-top:0">' + title + '</div>';
+      if (canManage) html += '<button class="btn" data-toggle-form="' + key + '">+ New ' + title.replace(/s$/, '') + '</button>';
+      html += '</div>';
+      if (canManage) {
+        html += '<div class="form-panel" id="form_' + key + '" style="display:none;"><div class="form-row">' + formFieldsHtml + '</div>'
+          + '<div class="form-actions"><button class="btn" data-submit-form="' + key + '">Create</button>'
+          + '<button class="btn-secondary" data-cancel-form="' + key + '">Cancel</button></div>'
+          + '<div class="form-error" id="error_' + key + '"></div></div>';
+      }
+      html += rowsHtml;
+      return html;
+    }
+
+    function catalogCategoryFormFields_() {
+      var topLevel = catalogData.categories.filter(function (c) { return !c.parentCategoryId; });
+      return '<div class="form-field"><label>Category Name</label><input type="text" id="new_category_name"></div>'
+        + '<div class="form-field"><label>Parent (optional — leave blank for a top-level Category)</label>'
+        + '<select id="new_category_parent"><option value="">— Top level —</option>' + optionsFor_(topLevel, 'categoryId', 'categoryName') + '</select></div>';
+    }
+
+    function catalogUnitFormFields_() {
+      var baseUnits = catalogData.units.filter(function (u) { return !u.baseUnitId; });
+      return '<div class="form-field"><label>Unit Name</label><input type="text" id="new_unit_name"></div>'
+        + '<div class="form-field"><label>Symbol (optional)</label><input type="text" id="new_unit_symbol"></div>'
+        + '<div class="form-field"><label>Base Unit (optional — for a derived unit like "Dozen")</label>'
+        + '<select id="new_unit_base"><option value="">— This is a base unit —</option>' + optionsFor_(baseUnits, 'unitId', 'unitName') + '</select></div>'
+        + '<div class="form-field"><label>Conversion Factor (if derived)</label><input type="number" id="new_unit_factor" step="0.01"></div>';
+    }
+
+    function catalogSimpleRows_(list, idKey, labelKey) {
+      if (!list || list.length === 0) return '<div class="placeholder">None yet</div>';
+      var html = '<table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody>';
+      list.forEach(function (item) {
+        html += '<tr><td>' + item[labelKey] + '</td><td><span class="status-pill status-' + item.status + '">' + item.status + '</span></td></tr>';
+      });
+      return html + '</tbody></table>';
+    }
+
+    function catalogCategoryRows_() {
+      if (catalogData.categories.length === 0) return '<div class="placeholder">None yet</div>';
+      var html = '<table><thead><tr><th>Name</th><th>Parent</th><th>Status</th></tr></thead><tbody>';
+      catalogData.categories.forEach(function (c) {
+        var parent = catalogData.categories.find(function (p) { return p.categoryId === c.parentCategoryId; });
+        html += '<tr><td>' + c.categoryName + '</td><td>' + (parent ? parent.categoryName : '—') + '</td><td><span class="status-pill status-' + c.status + '">' + c.status + '</span></td></tr>';
+      });
+      return html + '</tbody></table>';
+    }
+
+    function catalogUnitRows_() {
+      if (catalogData.units.length === 0) return '<div class="placeholder">None yet</div>';
+      var html = '<table><thead><tr><th>Name</th><th>Symbol</th><th>Base Unit</th><th>Factor</th><th>Status</th></tr></thead><tbody>';
+      catalogData.units.forEach(function (u) {
+        var base = catalogData.units.find(function (b) { return b.unitId === u.baseUnitId; });
+        html += '<tr><td>' + u.unitName + '</td><td>' + (u.unitSymbol || '—') + '</td><td>' + (base ? base.unitName : '—') + '</td><td>' + (u.conversionFactor || '—') + '</td><td><span class="status-pill status-' + u.status + '">' + u.status + '</span></td></tr>';
+      });
+      return html + '</tbody></table>';
+    }
+
+    function wireCatalogHandlers_(container, canManage) {
+      if (!canManage) return;
+      container.querySelectorAll('[data-toggle-form]').forEach(function (btn) {
+        btn.onclick = function () {
+          var panel = document.getElementById('form_' + btn.getAttribute('data-toggle-form'));
+          panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        };
+      });
+      container.querySelectorAll('[data-cancel-form]').forEach(function (btn) {
+        btn.onclick = function () { document.getElementById('form_' + btn.getAttribute('data-cancel-form')).style.display = 'none'; };
+      });
+      container.querySelectorAll('[data-submit-form]').forEach(function (btn) {
+        btn.onclick = function () { submitCatalogForm_(btn.getAttribute('data-submit-form'), container); };
+      });
+    }
+
+    function submitCatalogForm_(key, container) {
+      var errorEl = document.getElementById('error_' + key);
+      errorEl.innerText = '';
+      var action, payload;
+
+      if (key === 'category') {
+        var name = document.getElementById('new_category_name').value.trim();
+        if (!name) { errorEl.innerText = 'Category name is required.'; return; }
+        action = 'createCategory';
+        payload = { businessId: currentBusinessId, categoryName: name, parentCategoryId: document.getElementById('new_category_parent').value || undefined };
+      } else if (key === 'brand') {
+        var bname = document.getElementById('new_brand_name').value.trim();
+        if (!bname) { errorEl.innerText = 'Brand name is required.'; return; }
+        action = 'createBrand';
+        payload = { businessId: currentBusinessId, brandName: bname };
+      } else if (key === 'productType') {
+        var tname = document.getElementById('new_productType_name').value.trim();
+        if (!tname) { errorEl.innerText = 'Type name is required.'; return; }
+        action = 'createProductType';
+        payload = { businessId: currentBusinessId, typeName: tname };
+      } else if (key === 'unit') {
+        var uname = document.getElementById('new_unit_name').value.trim();
+        if (!uname) { errorEl.innerText = 'Unit name is required.'; return; }
+        var baseUnitId = document.getElementById('new_unit_base').value || undefined;
+        var factorRaw = document.getElementById('new_unit_factor').value;
+        if (baseUnitId && !factorRaw) { errorEl.innerText = 'Conversion Factor is required when a Base Unit is selected.'; return; }
+        action = 'createUnit';
+        payload = {
+          businessId: currentBusinessId, unitName: uname, unitSymbol: document.getElementById('new_unit_symbol').value.trim() || undefined,
+          baseUnitId: baseUnitId, conversionFactor: factorRaw ? parseFloat(factorRaw) : undefined
+        };
+      }
+
+      callWithSession(action, payload).then(function (result) {
+        if (!result.success) { errorEl.innerText = result.message; return; }
+        renderCatalog(container, true); // force refresh since data changed
+      }).catch(function (err) {
+        errorEl.innerText = 'Network/server error: ' + err;
+      });
+    }
+
+    // Run on initial page load.
+    tryResumeSession();
   </script>
 </body>
 </html>
