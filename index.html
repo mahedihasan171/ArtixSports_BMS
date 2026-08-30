@@ -128,10 +128,54 @@
         }
         currentSessionToken = result.data.sessionToken;
         currentUser = result.data; // { userId, displayName, email }
+        sessionStorage.setItem('artix_session_token', currentSessionToken);
+        sessionStorage.setItem('artix_current_user', JSON.stringify(currentUser));
         showBusinessSelector();
       }).catch(function (err) {
         document.getElementById('loginStatus').innerText = 'Network/server error: ' + err;
       });
+    }
+
+    /**
+     * Runs once on page load. If a session was saved before a refresh,
+     * verify it's still valid (a token can expire/be revoked between
+     * page loads) and resume straight into the app — never silently
+     * trust a stored token without checking it against the server.
+     */
+    function tryResumeSession() {
+      var savedToken = sessionStorage.getItem('artix_session_token');
+      var savedUser = sessionStorage.getItem('artix_current_user');
+      var savedBusinessId = sessionStorage.getItem('artix_current_business_id');
+      if (!savedToken || !savedUser) return; // nothing to resume, show login normally
+
+      currentSessionToken = savedToken;
+      currentUser = JSON.parse(savedUser);
+
+      callWithSession('listMyBusinesses', {}).then(function (result) {
+        if (!result.success) {
+          // Token no longer valid (expired/logged out elsewhere) — clear and show login normally.
+          clearSavedSession();
+          return;
+        }
+        myBusinesses = result.data;
+        document.getElementById('loginScreen').style.display = 'none';
+        if (savedBusinessId && myBusinesses.some(function (b) { return b.businessId === savedBusinessId; })) {
+          selectBusiness(savedBusinessId);
+        } else {
+          document.getElementById('bizSelectScreen').style.display = 'block';
+          renderBusinessList();
+        }
+      }).catch(function () {
+        clearSavedSession();
+      });
+    }
+
+    function clearSavedSession() {
+      sessionStorage.removeItem('artix_session_token');
+      sessionStorage.removeItem('artix_current_user');
+      sessionStorage.removeItem('artix_current_business_id');
+      currentSessionToken = null;
+      currentUser = null;
     }
 
     // ============================================================
@@ -143,19 +187,23 @@
       callWithSession('listMyBusinesses', {}).then(function (result) {
         if (!result.success) { alert('Could not load businesses: ' + result.message); return; }
         myBusinesses = result.data;
-        var listEl = document.getElementById('bizList');
-        listEl.innerHTML = '';
-        if (myBusinesses.length === 0) {
-          listEl.innerHTML = '<p style="color:#999">No businesses yet. Contact your Owner for access.</p>';
-          return;
-        }
-        myBusinesses.forEach(function (b) {
-          var item = document.createElement('div');
-          item.className = 'biz-list-item';
-          item.innerHTML = '<span>' + b.businessName + '</span><span class="role-badge">' + b.roleId + '</span>';
-          item.onclick = function () { selectBusiness(b.businessId); };
-          listEl.appendChild(item);
-        });
+        renderBusinessList();
+      });
+    }
+
+    function renderBusinessList() {
+      var listEl = document.getElementById('bizList');
+      listEl.innerHTML = '';
+      if (myBusinesses.length === 0) {
+        listEl.innerHTML = '<p style="color:#999">No businesses yet. Contact your Owner for access.</p>';
+        return;
+      }
+      myBusinesses.forEach(function (b) {
+        var item = document.createElement('div');
+        item.className = 'biz-list-item';
+        item.innerHTML = '<span>' + b.businessName + '</span><span class="role-badge">' + b.roleId + '</span>';
+        item.onclick = function () { selectBusiness(b.businessId); };
+        listEl.appendChild(item);
       });
     }
 
@@ -164,6 +212,7 @@
         if (!result.success) { alert('Could not select business: ' + result.message); return; }
         currentBusinessId = businessId;
         currentContext = result.data; // { business, membership, role, permissions }
+        sessionStorage.setItem('artix_current_business_id', businessId);
         enterApp();
       });
     }
@@ -201,11 +250,18 @@
 
       document.getElementById('logoutLink').onclick = function (e) {
         e.preventDefault();
-        callWithSession('logout', {}).then(function () { location.reload(); });
+        callWithSession('logout', {}).then(function () {
+          clearSavedSession();
+          location.reload();
+        });
       };
 
       renderView('dashboard');
     }
+
+    // Run on initial page load — attempts to resume a saved session
+    // before falling back to showing the login screen.
+    tryResumeSession();
 
     function fmt(n) {
       if (typeof n !== 'number') return '—';
