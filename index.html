@@ -38,6 +38,20 @@
     .biz-list-item { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     .biz-list-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .role-badge { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #e8f0ff; color: #4f8cff; font-weight: 600; }
+    .btn-secondary { background: #fff; color: #4f8cff; border: 1px solid #4f8cff; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .btn-small { padding: 4px 10px; font-size: 12px; border-radius: 5px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .form-panel { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .form-field { flex: 1; min-width: 180px; }
+    .form-field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; }
+    .form-actions { display: flex; gap: 10px; margin-top: 6px; }
+    .form-error { color: #c0392b; font-size: 13px; margin-top: 8px; }
+    .status-pill { font-size: 11px; padding: 2px 8px; border-radius: 8px; }
+    .status-Active { background: #e6f7ec; color: #1a7a3c; }
+    .status-Inactive { background: #fdf3e0; color: #b5730a; }
+    .status-Archived { background: #f0f0f0; color: #888; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   </style>
 </head>
 <body>
@@ -70,7 +84,7 @@
     <div class="sidebar">
       <div class="brand">ArtixSport BMS</div>
       <div class="nav-item active" data-view="dashboard">Dashboard</div>
-      <div class="nav-item soon" data-view="products">Products</div>
+      <div class="nav-item" data-view="products">Products</div>
       <div class="nav-item soon" data-view="customers">Customers</div>
       <div class="nav-item soon" data-view="vendors">Vendors</div>
       <div class="nav-item soon" data-view="purchases">Purchases</div>
@@ -290,11 +304,20 @@
     // ============================================================
     function renderView(view) {
       var container = document.getElementById('viewContainer');
+      if (view === 'products') { renderProducts(container); return; }
       if (view !== 'dashboard') {
         container.innerHTML = '<div class="placeholder">This section (' + view + ') is coming in the next build pass.</div>';
         return;
       }
       container.innerHTML = '<div class="placeholder">Loading dashboard…</div>';
+
+      if (currentContext.permissions.indexOf('PROFIT_ALLOCATION_VIEW') === -1) {
+        container.innerHTML = '<div class="placeholder">The Dashboard combines financial figures (Cash, Profit, Reinvestment) that are only shown to Owners and Managers. '
+          + 'As a ' + currentContext.role + ', you can still use the individual sections in the sidebar once they\'re built '
+          + '(Products, Sales, Inventory, etc.) — just not this combined financial overview.</div>';
+        return;
+      }
+
       callWithSession('getDashboard', { businessId: currentBusinessId, options: { topN: 5, lowStockThreshold: 10 } }).then(function (result) {
         if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
         var d = result.data;
@@ -348,6 +371,161 @@
       });
       html += '</tbody></table>';
       return html;
+    }
+
+    // ============================================================
+    // Products — Category/Brand/ProductType/Unit all resolved from
+    // real Master Data via dropdowns, never a manually-typed ID.
+    // Scoped to simple (non-variant) products this pass — variant
+    // creation/management is a separate, larger UI, deferred on
+    // purpose, not silently missing.
+    // ============================================================
+    var productsPageData = { categories: [], brands: [], productTypes: [], units: [], products: [] };
+
+    function renderProducts(container) {
+      container.innerHTML = '<div class="placeholder">Loading products…</div>';
+      Promise.all([
+        callWithSession('listCategories', { businessId: currentBusinessId }),
+        callWithSession('listBrands', { businessId: currentBusinessId }),
+        callWithSession('listProductTypes', { businessId: currentBusinessId }),
+        callWithSession('listUnits', { businessId: currentBusinessId }),
+        callWithSession('listProducts', { businessId: currentBusinessId })
+      ]).then(function (results) {
+        var failed = results.find(function (r) { return !r.success; });
+        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
+        productsPageData.categories = results[0].data;
+        productsPageData.brands = results[1].data;
+        productsPageData.productTypes = results[2].data;
+        productsPageData.units = results[3].data;
+        productsPageData.products = results[4].data;
+        drawProductsScreen(container);
+      }).catch(function (err) {
+        container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>';
+      });
+    }
+
+    function optionsFor_(list, idKey, labelKey) {
+      return list.map(function (item) {
+        return '<option value="' + item[idKey] + '">' + item[labelKey] + '</option>';
+      }).join('');
+    }
+
+    function drawProductsScreen(container) {
+      var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
+      var d = productsPageData;
+
+      var html = '<div class="header-row"><div></div>';
+      if (canManage) html += '<button class="btn" id="toggleCreateProductForm">+ New Product</button>';
+      html += '</div>';
+
+      if (canManage) {
+        var hasPrereqs = d.categories.length > 0 && d.productTypes.length > 0 && d.units.length > 0;
+        html += '<div class="form-panel" id="createProductForm" style="display:none;">';
+        if (!hasPrereqs) {
+          html += '<p style="color:#b5730a">You need at least one Category, ProductType, and Unit before creating a Product. '
+            + '(Category/ProductType/Unit management screens are coming in a later pass — for now these can be created via the API directly.)</p>';
+        } else {
+          html += '<div class="form-row">'
+            + '<div class="form-field"><label>Product Name</label><input type="text" id="newProductName"></div>'
+            + '<div class="form-field"><label>Category</label><select id="newProductCategory">' + optionsFor_(d.categories, 'categoryId', 'categoryName') + '</select></div>'
+            + '<div class="form-field"><label>Product Type</label><select id="newProductType">' + optionsFor_(d.productTypes, 'productTypeId', 'typeName') + '</select></div>'
+            + '</div>';
+          html += '<div class="form-row">'
+            + '<div class="form-field"><label>Brand (optional)</label><select id="newProductBrand"><option value="">—</option>' + optionsFor_(d.brands, 'brandId', 'brandName') + '</select></div>'
+            + '<div class="form-field"><label>Unit</label><select id="newProductUnit">' + optionsFor_(d.units, 'unitId', 'unitName') + '</select></div>'
+            + '<div class="form-field"><label>Selling Price</label><input type="number" id="newProductPrice" step="0.01"></div>'
+            + '</div>';
+          html += '<div class="form-row">'
+            + '<div class="form-field"><label>SKU (optional)</label><input type="text" id="newProductSku"></div>'
+            + '<div class="form-field"><label>Description (optional)</label><input type="text" id="newProductDescription"></div>'
+            + '</div>';
+          html += '<div class="form-actions"><button class="btn" id="submitCreateProduct">Create Product</button>'
+            + '<button class="btn-secondary" id="cancelCreateProduct">Cancel</button></div>'
+            + '<div class="form-error" id="createProductError"></div>';
+        }
+        html += '</div>';
+      }
+
+      if (d.products.length === 0) {
+        html += '<div class="placeholder">No products yet.' + (canManage ? ' Click "+ New Product" to add one.' : '') + '</div>';
+      } else {
+        html += '<table><thead><tr><th>Name</th><th>Category</th><th>Brand</th><th>Type</th><th>Has Variants</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+        d.products.forEach(function (p) {
+          var cat = d.categories.find(function (c) { return c.categoryId === p.categoryId; });
+          var brand = d.brands.find(function (b) { return b.brandId === p.brandId; });
+          var ptype = d.productTypes.find(function (t) { return t.productTypeId === p.productTypeId; });
+          html += '<tr>'
+            + '<td>' + p.productName + '</td>'
+            + '<td>' + (cat ? cat.categoryName : '—') + '</td>'
+            + '<td>' + (brand ? brand.brandName : '—') + '</td>'
+            + '<td>' + (ptype ? ptype.typeName : '—') + '</td>'
+            + '<td>' + (p.hasVariants ? 'Yes' : 'No') + '</td>'
+            + '<td><span class="status-pill status-' + p.status + '">' + p.status + '</span></td>';
+          if (canManage) {
+            html += '<td>' + statusActionButtons_(p) + '</td>';
+          }
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+      }
+
+      container.innerHTML = html;
+
+      if (canManage) {
+        var formEl = document.getElementById('createProductForm');
+        document.getElementById('toggleCreateProductForm').onclick = function () {
+          formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none';
+        };
+        var cancelBtn = document.getElementById('cancelCreateProduct');
+        if (cancelBtn) cancelBtn.onclick = function () { formEl.style.display = 'none'; };
+        var submitBtn = document.getElementById('submitCreateProduct');
+        if (submitBtn) submitBtn.onclick = submitCreateProduct;
+
+        document.querySelectorAll('[data-status-action]').forEach(function (btn) {
+          btn.onclick = function () {
+            var productId = btn.getAttribute('data-product-id');
+            var newStatus = btn.getAttribute('data-status-action');
+            callWithSession('setProductStatus', { businessId: currentBusinessId, productId: productId, status: newStatus }).then(function (result) {
+              if (!result.success) { alert(result.message); return; }
+              renderProducts(container);
+            });
+          };
+        });
+      }
+    }
+
+    function statusActionButtons_(product) {
+      var buttons = '';
+      if (product.status !== 'Active') buttons += '<button class="btn-small" data-status-action="Active" data-product-id="' + product.productId + '">Activate</button> ';
+      if (product.status !== 'Inactive') buttons += '<button class="btn-small" data-status-action="Inactive" data-product-id="' + product.productId + '">Deactivate</button> ';
+      if (product.status !== 'Archived') buttons += '<button class="btn-small" data-status-action="Archived" data-product-id="' + product.productId + '">Archive</button>';
+      return buttons;
+    }
+
+    function submitCreateProduct() {
+      var errorEl = document.getElementById('createProductError');
+      errorEl.innerText = '';
+
+      var input = {
+        productName: document.getElementById('newProductName').value.trim(),
+        categoryId: document.getElementById('newProductCategory').value,
+        productTypeId: document.getElementById('newProductType').value,
+        brandId: document.getElementById('newProductBrand').value || undefined,
+        description: document.getElementById('newProductDescription').value.trim() || undefined,
+        hasVariants: false, // this pass covers simple products only — see the design note in the code
+        defaultUnitId: document.getElementById('newProductUnit').value,
+        defaultSku: document.getElementById('newProductSku').value.trim() || undefined,
+        defaultSellingPrice: document.getElementById('newProductPrice').value ? parseFloat(document.getElementById('newProductPrice').value) : undefined
+      };
+
+      if (!input.productName) { errorEl.innerText = 'Product name is required.'; return; }
+
+      callWithSession('createProduct', { businessId: currentBusinessId, input: input }).then(function (result) {
+        if (!result.success) { errorEl.innerText = result.message; return; }
+        renderView('products'); // refresh nav to Products and reload the list
+      }).catch(function (err) {
+        errorEl.innerText = 'Network/server error: ' + err;
+      });
     }
   </script>
 </body>
