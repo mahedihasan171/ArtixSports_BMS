@@ -86,8 +86,9 @@
       <div class="nav-item active" data-view="dashboard">Dashboard</div>
       <div class="nav-item" data-view="products">Products</div>
       <div class="nav-item" data-view="catalog">Catalog Setup</div>
-      <div class="nav-item soon" data-view="customers">Customers</div>
-      <div class="nav-item soon" data-view="vendors">Vendors</div>
+      <div class="nav-item" data-view="customers">Customers</div>
+      <div class="nav-item" data-view="vendors">Vendors</div>
+      <div class="nav-item" data-view="locations">Locations</div>
       <div class="nav-item soon" data-view="purchases">Purchases</div>
       <div class="nav-item soon" data-view="inventory">Inventory</div>
       <div class="nav-item soon" data-view="sales">Sales</div>
@@ -320,6 +321,9 @@
       var container = document.getElementById('viewContainer');
       if (view === 'products') { renderProducts(container); return; }
       if (view === 'catalog') { renderCatalog(container); return; }
+      if (view === 'customers') { renderCustomers(container); return; }
+      if (view === 'vendors') { renderVendors(container); return; }
+      if (view === 'locations') { renderLocations(container); return; }
       if (view !== 'dashboard') {
         container.innerHTML = '<div class="placeholder">This section (' + view + ') is coming in the next build pass.</div>';
         return;
@@ -727,6 +731,264 @@
       }).catch(function (err) {
         errorEl.innerText = 'Network/server error: ' + err;
       });
+    }
+
+    // ============================================================
+    // Customers — CustomerType/PaymentTerms are FIXED system codes
+    // (never business-created), so these render as hardcoded dropdowns,
+    // not fetched Master Data — matching the backend's own rule that
+    // these catalogs are never business-editable.
+    // ============================================================
+    var CUSTOMER_TYPES = ['RETAIL', 'WHOLESALE', 'INDIVIDUAL', 'CORPORATE', 'OTHER'];
+    var PAYMENT_TERMS = ['COD', 'NET15', 'NET30', 'NET60'];
+    var customersPageData = [];
+
+    function renderCustomers(container, forceRefresh) {
+      var cached = getCache('customers');
+      if (cached && !forceRefresh) { customersPageData = cached; drawCustomersScreen(container); return; }
+      container.innerHTML = '<div class="placeholder">Loading customers…</div>';
+      callWithSession('listCustomers', { businessId: currentBusinessId }).then(function (result) {
+        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        customersPageData = result.data;
+        setCache('customers', customersPageData);
+        drawCustomersScreen(container);
+      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+    }
+
+    function drawCustomersScreen(container) {
+      var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
+      var html = '<div class="header-row"><div></div><div>' + refreshButton_('customers');
+      if (canManage) html += ' <button class="btn" id="toggleCreateCustomerForm">+ New Customer</button>';
+      html += '</div></div>';
+
+      if (canManage) {
+        html += '<div class="form-panel" id="createCustomerForm" style="display:none;">'
+          + '<div class="form-row">'
+          + '<div class="form-field"><label>Customer Name</label><input type="text" id="newCustomerName"></div>'
+          + '<div class="form-field"><label>Customer Type</label><select id="newCustomerType">' + CUSTOMER_TYPES.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '<div class="form-field"><label>Payment Terms (optional)</label><select id="newCustomerTerms"><option value="">—</option>' + PAYMENT_TERMS.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '</div><div class="form-row">'
+          + '<div class="form-field"><label>Phone (optional)</label><input type="text" id="newCustomerPhone"></div>'
+          + '<div class="form-field"><label>Email (optional)</label><input type="text" id="newCustomerEmail"></div>'
+          + '<div class="form-field"><label>Credit Limit (optional)</label><input type="number" id="newCustomerCreditLimit" step="0.01"></div>'
+          + '</div>'
+          + '<div class="form-actions"><button class="btn" id="submitCreateCustomer">Create Customer</button>'
+          + '<button class="btn-secondary" id="cancelCreateCustomer">Cancel</button></div>'
+          + '<div class="form-error" id="createCustomerError"></div></div>';
+      }
+
+      if (customersPageData.length === 0) {
+        html += '<div class="placeholder">No customers yet.' + (canManage ? ' Click "+ New Customer" to add one.' : '') + '</div>';
+      } else {
+        html += '<table><thead><tr><th>Name</th><th>Type</th><th>Payment Terms</th><th>Phone</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+        customersPageData.forEach(function (c) {
+          html += '<tr><td>' + c.customerName + '</td><td>' + c.customerType + '</td><td>' + (c.paymentTerms || '—') + '</td><td>' + (c.phone || '—') + '</td>'
+            + '<td><span class="status-pill status-' + c.status + '">' + c.status + '</span></td>';
+          if (canManage) html += '<td>' + entityStatusButtons_(c, 'customerId', 'setCustomerStatus', 'customers') + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+      }
+
+      container.innerHTML = html;
+      var refreshBtn = document.getElementById('refreshBtn_customers');
+      if (refreshBtn) refreshBtn.onclick = function () { renderCustomers(container, true); };
+
+      if (canManage) {
+        var formEl = document.getElementById('createCustomerForm');
+        document.getElementById('toggleCreateCustomerForm').onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        document.getElementById('cancelCreateCustomer').onclick = function () { formEl.style.display = 'none'; };
+        document.getElementById('submitCreateCustomer').onclick = function () {
+          var errorEl = document.getElementById('createCustomerError');
+          errorEl.innerText = '';
+          var name = document.getElementById('newCustomerName').value.trim();
+          if (!name) { errorEl.innerText = 'Customer name is required.'; return; }
+          var input = {
+            customerName: name, customerType: document.getElementById('newCustomerType').value,
+            paymentTerms: document.getElementById('newCustomerTerms').value || undefined,
+            phone: document.getElementById('newCustomerPhone').value.trim() || undefined,
+            email: document.getElementById('newCustomerEmail').value.trim() || undefined,
+            creditLimit: document.getElementById('newCustomerCreditLimit').value ? parseFloat(document.getElementById('newCustomerCreditLimit').value) : undefined
+          };
+          callWithSession('createCustomer', { businessId: currentBusinessId, input: input }).then(function (result) {
+            if (!result.success) { errorEl.innerText = result.message; return; }
+            renderCustomers(container, true);
+          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        };
+        wireEntityStatusButtons_(container);
+      }
+    }
+
+    /** Shared status-action buttons for any simple entity with an Active/Inactive/Archived-style status. */
+    function entityStatusButtons_(entity, idField, action, viewName) {
+      var buttons = '';
+      if (entity.status !== 'Active') buttons += '<button class="btn-small" data-entity-status="Active" data-entity-id="' + entity[idField] + '" data-entity-action="' + action + '" data-entity-view="' + viewName + '">Activate</button> ';
+      if (entity.status !== 'Inactive') buttons += '<button class="btn-small" data-entity-status="Inactive" data-entity-id="' + entity[idField] + '" data-entity-action="' + action + '" data-entity-view="' + viewName + '">Deactivate</button> ';
+      if (entity.status !== 'Archived') buttons += '<button class="btn-small" data-entity-status="Archived" data-entity-id="' + entity[idField] + '" data-entity-action="' + action + '" data-entity-view="' + viewName + '">Archive</button>';
+      return buttons;
+    }
+    function wireEntityStatusButtons_(container) {
+      container.querySelectorAll('[data-entity-status]').forEach(function (btn) {
+        btn.onclick = function () {
+          var action = btn.getAttribute('data-entity-action');
+          var view = btn.getAttribute('data-entity-view');
+          var idKeyMap = { customers: 'customerId', vendors: 'vendorId', locations: 'locationId' };
+          var payload = { businessId: currentBusinessId, status: btn.getAttribute('data-entity-status') };
+          payload[idKeyMap[view]] = btn.getAttribute('data-entity-id');
+          callWithSession(action, payload).then(function (result) {
+            if (!result.success) { alert(result.message); return; }
+            if (view === 'customers') renderCustomers(container, true);
+            if (view === 'vendors') renderVendors(container, true);
+            if (view === 'locations') renderLocations(container, true);
+          });
+        };
+      });
+    }
+
+    // ============================================================
+    // Vendors
+    // ============================================================
+    var vendorsPageData = [];
+
+    function renderVendors(container, forceRefresh) {
+      var cached = getCache('vendors');
+      if (cached && !forceRefresh) { vendorsPageData = cached; drawVendorsScreen(container); return; }
+      container.innerHTML = '<div class="placeholder">Loading vendors…</div>';
+      callWithSession('listVendors', { businessId: currentBusinessId }).then(function (result) {
+        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        vendorsPageData = result.data;
+        setCache('vendors', vendorsPageData);
+        drawVendorsScreen(container);
+      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+    }
+
+    function drawVendorsScreen(container) {
+      var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
+      var html = '<div class="header-row"><div></div><div>' + refreshButton_('vendors');
+      if (canManage) html += ' <button class="btn" id="toggleCreateVendorForm">+ New Vendor</button>';
+      html += '</div></div>';
+
+      if (canManage) {
+        html += '<div class="form-panel" id="createVendorForm" style="display:none;">'
+          + '<div class="form-row">'
+          + '<div class="form-field"><label>Vendor Name</label><input type="text" id="newVendorName"></div>'
+          + '<div class="form-field"><label>Payment Terms (optional)</label><select id="newVendorTerms"><option value="">—</option>' + PAYMENT_TERMS.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '</div><div class="form-row">'
+          + '<div class="form-field"><label>Phone (optional)</label><input type="text" id="newVendorPhone"></div>'
+          + '<div class="form-field"><label>Email (optional)</label><input type="text" id="newVendorEmail"></div>'
+          + '</div>'
+          + '<div class="form-actions"><button class="btn" id="submitCreateVendor">Create Vendor</button>'
+          + '<button class="btn-secondary" id="cancelCreateVendor">Cancel</button></div>'
+          + '<div class="form-error" id="createVendorError"></div></div>';
+      }
+
+      if (vendorsPageData.length === 0) {
+        html += '<div class="placeholder">No vendors yet.' + (canManage ? ' Click "+ New Vendor" to add one.' : '') + '</div>';
+      } else {
+        html += '<table><thead><tr><th>Name</th><th>Payment Terms</th><th>Phone</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+        vendorsPageData.forEach(function (v) {
+          html += '<tr><td>' + v.vendorName + '</td><td>' + (v.paymentTerms || '—') + '</td><td>' + (v.phone || '—') + '</td>'
+            + '<td><span class="status-pill status-' + v.status + '">' + v.status + '</span></td>';
+          if (canManage) html += '<td>' + entityStatusButtons_(v, 'vendorId', 'setVendorStatus', 'vendors') + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+      }
+
+      container.innerHTML = html;
+      var refreshBtn = document.getElementById('refreshBtn_vendors');
+      if (refreshBtn) refreshBtn.onclick = function () { renderVendors(container, true); };
+
+      if (canManage) {
+        var formEl = document.getElementById('createVendorForm');
+        document.getElementById('toggleCreateVendorForm').onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        document.getElementById('cancelCreateVendor').onclick = function () { formEl.style.display = 'none'; };
+        document.getElementById('submitCreateVendor').onclick = function () {
+          var errorEl = document.getElementById('createVendorError');
+          errorEl.innerText = '';
+          var name = document.getElementById('newVendorName').value.trim();
+          if (!name) { errorEl.innerText = 'Vendor name is required.'; return; }
+          var input = {
+            vendorName: name, paymentTerms: document.getElementById('newVendorTerms').value || undefined,
+            phone: document.getElementById('newVendorPhone').value.trim() || undefined,
+            email: document.getElementById('newVendorEmail').value.trim() || undefined
+          };
+          callWithSession('createVendor', { businessId: currentBusinessId, input: input }).then(function (result) {
+            if (!result.success) { errorEl.innerText = result.message; return; }
+            renderVendors(container, true);
+          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        };
+        wireEntityStatusButtons_(container);
+      }
+    }
+
+    // ============================================================
+    // Locations — LocationType is a fixed enum (Warehouse/Store/StockRoom)
+    // ============================================================
+    var LOCATION_TYPES = ['Store', 'Warehouse', 'StockRoom'];
+    var locationsPageData = [];
+
+    function renderLocations(container, forceRefresh) {
+      var cached = getCache('locations');
+      if (cached && !forceRefresh) { locationsPageData = cached; drawLocationsScreen(container); return; }
+      container.innerHTML = '<div class="placeholder">Loading locations…</div>';
+      callWithSession('listLocations', { businessId: currentBusinessId }).then(function (result) {
+        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        locationsPageData = result.data;
+        setCache('locations', locationsPageData);
+        drawLocationsScreen(container);
+      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+    }
+
+    function drawLocationsScreen(container) {
+      var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
+      var html = '<div class="header-row"><div></div><div>' + refreshButton_('locations');
+      if (canManage) html += ' <button class="btn" id="toggleCreateLocationForm">+ New Location</button>';
+      html += '</div></div>';
+
+      if (canManage) {
+        html += '<div class="form-panel" id="createLocationForm" style="display:none;"><div class="form-row">'
+          + '<div class="form-field"><label>Location Name</label><input type="text" id="newLocationName"></div>'
+          + '<div class="form-field"><label>Type</label><select id="newLocationType">' + LOCATION_TYPES.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '</div>'
+          + '<div class="form-actions"><button class="btn" id="submitCreateLocation">Create Location</button>'
+          + '<button class="btn-secondary" id="cancelCreateLocation">Cancel</button></div>'
+          + '<div class="form-error" id="createLocationError"></div></div>';
+      }
+
+      if (locationsPageData.length === 0) {
+        html += '<div class="placeholder">No locations yet.' + (canManage ? ' Click "+ New Location" to add one — you\'ll need at least one before Purchases/Sales/Inventory work.' : '') + '</div>';
+      } else {
+        html += '<table><thead><tr><th>Name</th><th>Type</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+        locationsPageData.forEach(function (l) {
+          html += '<tr><td>' + l.locationName + '</td><td>' + l.locationType + '</td>'
+            + '<td><span class="status-pill status-' + l.status + '">' + l.status + '</span></td>';
+          if (canManage) html += '<td>' + entityStatusButtons_(l, 'locationId', 'setLocationStatus', 'locations') + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+      }
+
+      container.innerHTML = html;
+      var refreshBtn = document.getElementById('refreshBtn_locations');
+      if (refreshBtn) refreshBtn.onclick = function () { renderLocations(container, true); };
+
+      if (canManage) {
+        var formEl = document.getElementById('createLocationForm');
+        document.getElementById('toggleCreateLocationForm').onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        document.getElementById('cancelCreateLocation').onclick = function () { formEl.style.display = 'none'; };
+        document.getElementById('submitCreateLocation').onclick = function () {
+          var errorEl = document.getElementById('createLocationError');
+          errorEl.innerText = '';
+          var name = document.getElementById('newLocationName').value.trim();
+          if (!name) { errorEl.innerText = 'Location name is required.'; return; }
+          callWithSession('createLocation', { businessId: currentBusinessId, locationName: name, locationType: document.getElementById('newLocationType').value }).then(function (result) {
+            if (!result.success) { errorEl.innerText = result.message; return; }
+            renderLocations(container, true);
+          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        };
+        wireEntityStatusButtons_(container);
+      }
     }
 
     // Run on initial page load.
