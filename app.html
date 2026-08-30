@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ArtixSport BMS</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; margin: 0; background: #f4f5f7; color: #1a1a1a; }
+    .center-screen { max-width: 480px; margin: 80px auto; text-align: center; }
+    .app-shell { display: none; }
+    .app-shell.visible { display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: #1a2332; color: #fff; flex-shrink: 0; padding: 20px 0; }
+    .sidebar .brand { padding: 0 20px 20px; font-weight: 700; font-size: 18px; border-bottom: 1px solid #2c3a50; margin-bottom: 10px; }
+    .sidebar .nav-item { padding: 10px 20px; cursor: pointer; font-size: 14px; color: #b8c2d0; }
+    .sidebar .nav-item:hover { background: #232f42; color: #fff; }
+    .sidebar .nav-item.active { background: #2a3b56; color: #fff; border-left: 3px solid #4f8cff; }
+    .sidebar .nav-item.soon { color: #5c6a80; cursor: default; }
+    .sidebar .nav-item.soon:hover { background: none; color: #5c6a80; }
+    .main { flex: 1; padding: 30px 40px; overflow-y: auto; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .topbar .who { font-size: 13px; color: #666; }
+    .topbar .biz-name { font-weight: 700; font-size: 20px; }
+    select#bizSwitcher { margin-left: 12px; font-size: 13px; padding: 4px 8px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .card .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.03em; }
+    .card .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .card .value.negative { color: #c0392b; }
+    .card .value.positive { color: #1a7a3c; }
+    .section-title { font-size: 15px; font-weight: 700; margin: 24px 0 10px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; }
+    th, td { text-align: left; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #eee; }
+    th { background: #fafafa; color: #666; font-weight: 600; }
+    .placeholder { background: #fff; border-radius: 8px; padding: 40px; text-align: center; color: #999; }
+    .btn { background: #4f8cff; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .biz-list-item { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .biz-list-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .role-badge { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #e8f0ff; color: #4f8cff; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div class="center-screen" id="loginScreen">
+    <h2>ArtixSport BMS</h2>
+    <p style="color:#666">Sign in to continue.</p>
+    <div id="g_id_onload"
+         data-client_id="YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+    <p id="loginStatus" style="color:#c0392b;font-size:13px;"></p>
+  </div>
+
+  <!-- ===== BUSINESS SELECTION SCREEN ===== -->
+  <div class="center-screen" id="bizSelectScreen" style="display:none; max-width:600px;">
+    <h2>Select a Business</h2>
+    <div id="bizList"></div>
+  </div>
+
+  <!-- ===== MAIN APP SHELL ===== -->
+  <div class="app-shell" id="appShell">
+    <div class="sidebar">
+      <div class="brand">ArtixSport BMS</div>
+      <div class="nav-item active" data-view="dashboard">Dashboard</div>
+      <div class="nav-item soon" data-view="products">Products</div>
+      <div class="nav-item soon" data-view="customers">Customers</div>
+      <div class="nav-item soon" data-view="vendors">Vendors</div>
+      <div class="nav-item soon" data-view="purchases">Purchases</div>
+      <div class="nav-item soon" data-view="inventory">Inventory</div>
+      <div class="nav-item soon" data-view="sales">Sales</div>
+      <div class="nav-item soon" data-view="returns">Returns</div>
+      <div class="nav-item soon" data-view="expenses">Expenses</div>
+      <div class="nav-item soon" data-view="finance">Finance</div>
+      <div class="nav-item soon" data-view="profit">Profit</div>
+      <div class="nav-item soon" data-view="allocation">Profit Allocation</div>
+      <div class="nav-item soon" data-view="reports">Reports</div>
+      <div class="nav-item soon" data-view="settings">Settings</div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <span class="biz-name" id="currentBizName"></span>
+          <select id="bizSwitcher"></select>
+        </div>
+        <div class="who">
+          <span id="currentUserName"></span> · <span id="currentUserRole"></span>
+          &nbsp;·&nbsp;<a href="#" id="logoutLink">Sign out</a>
+        </div>
+      </div>
+      <div id="viewContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // Transport — identical proven pattern from Batch 2.1
+    // ============================================================
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+    var currentSessionToken = null;
+    var currentUser = null;
+    var currentBusinessId = null;
+    var currentContext = null; // { business, membership, role, permissions }
+    var myBusinesses = [];
+
+    function callAppsScript(action, extra) {
+      var body = Object.assign({ action: action }, extra || {});
+      return fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body)
+      }).then(function (res) { return res.json(); });
+    }
+    function callWithSession(action, extra) {
+      return callAppsScript(action, Object.assign({ sessionToken: currentSessionToken }, extra || {}));
+    }
+
+    // ============================================================
+    // Login -> resolve Current User once, never re-ask
+    // ============================================================
+    function handleCredentialResponse(response) {
+      callAppsScript('login', { idToken: response.credential }).then(function (result) {
+        if (!result.success) {
+          document.getElementById('loginStatus').innerText = 'Login failed: ' + result.message;
+          return;
+        }
+        currentSessionToken = result.data.sessionToken;
+        currentUser = result.data; // { userId, displayName, email }
+        showBusinessSelector();
+      }).catch(function (err) {
+        document.getElementById('loginStatus').innerText = 'Network/server error: ' + err;
+      });
+    }
+
+    // ============================================================
+    // Business Selection — resolved once, switchable via topbar dropdown
+    // ============================================================
+    function showBusinessSelector() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('bizSelectScreen').style.display = 'block';
+      callWithSession('listMyBusinesses', {}).then(function (result) {
+        if (!result.success) { alert('Could not load businesses: ' + result.message); return; }
+        myBusinesses = result.data;
+        var listEl = document.getElementById('bizList');
+        listEl.innerHTML = '';
+        if (myBusinesses.length === 0) {
+          listEl.innerHTML = '<p style="color:#999">No businesses yet. Contact your Owner for access.</p>';
+          return;
+        }
+        myBusinesses.forEach(function (b) {
+          var item = document.createElement('div');
+          item.className = 'biz-list-item';
+          item.innerHTML = '<span>' + b.businessName + '</span><span class="role-badge">' + b.roleId + '</span>';
+          item.onclick = function () { selectBusiness(b.businessId); };
+          listEl.appendChild(item);
+        });
+      });
+    }
+
+    function selectBusiness(businessId) {
+      callWithSession('selectBusiness', { businessId: businessId }).then(function (result) {
+        if (!result.success) { alert('Could not select business: ' + result.message); return; }
+        currentBusinessId = businessId;
+        currentContext = result.data; // { business, membership, role, permissions }
+        enterApp();
+      });
+    }
+
+    // ============================================================
+    // App shell — Current User + Business resolved and displayed
+    // once, auto-populated everywhere below, never re-asked.
+    // ============================================================
+    function enterApp() {
+      document.getElementById('bizSelectScreen').style.display = 'none';
+      document.getElementById('appShell').classList.add('visible');
+      document.getElementById('currentBizName').innerText = currentContext.business.businessName;
+      document.getElementById('currentUserName').innerText = currentUser.displayName;
+      document.getElementById('currentUserRole').innerText = currentContext.role;
+
+      var switcher = document.getElementById('bizSwitcher');
+      switcher.innerHTML = '';
+      myBusinesses.forEach(function (b) {
+        var opt = document.createElement('option');
+        opt.value = b.businessId;
+        opt.text = b.businessName + ' (' + b.roleId + ')';
+        if (b.businessId === currentBusinessId) opt.selected = true;
+        switcher.appendChild(opt);
+      });
+      switcher.onchange = function () { selectBusiness(switcher.value); };
+
+      document.querySelectorAll('.nav-item').forEach(function (item) {
+        if (item.classList.contains('soon')) return;
+        item.onclick = function () {
+          document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+          item.classList.add('active');
+          renderView(item.getAttribute('data-view'));
+        };
+      });
+
+      document.getElementById('logoutLink').onclick = function (e) {
+        e.preventDefault();
+        callWithSession('logout', {}).then(function () { location.reload(); });
+      };
+
+      renderView('dashboard');
+    }
+
+    function fmt(n) {
+      if (typeof n !== 'number') return '—';
+      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // ============================================================
+    // Dashboard — fully working, renders every Phase 15 figure
+    // ============================================================
+    function renderView(view) {
+      var container = document.getElementById('viewContainer');
+      if (view !== 'dashboard') {
+        container.innerHTML = '<div class="placeholder">This section (' + view + ') is coming in the next build pass.</div>';
+        return;
+      }
+      container.innerHTML = '<div class="placeholder">Loading dashboard…</div>';
+      callWithSession('getDashboard', { options: { topN: 5, lowStockThreshold: 10 } }).then(function (result) {
+        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        var d = result.data;
+        var fs = d.financialSummary;
+
+        var cardsHtml =
+          card('Revenue', fmt(fs.revenue)) +
+          card('COGS', fmt(fs.cogs)) +
+          card('Gross Profit', fmt(fs.grossProfit), fs.grossProfit >= 0) +
+          card('Operating Expense', fmt(fs.operatingExpense)) +
+          card('Net Profit', fmt(fs.netProfit), fs.netProfit >= 0) +
+          card('Cash', fmt(fs.cashBalance), fs.cashBalance >= 0) +
+          card('Receivable', fmt(fs.receivable)) +
+          card('Payable', fmt(fs.payable)) +
+          card('Inventory Qty', fmt(fs.inventoryQuantity)) +
+          card('Inventory Value', fmt(fs.inventoryValue)) +
+          card('Profit Reinvested', fmt(fs.profitReinvested)) +
+          card('Profit Distributed', fmt(fs.profitDistributed)) +
+          card('Retained Profit', fmt(fs.retainedProfit)) +
+          card('Available Profit', fmt(fs.availableProfit), fs.availableProfit >= 0);
+
+        var op = d.operational;
+        var html = '<div class="card-grid">' + cardsHtml + '</div>';
+        html += tableSection('Top Products', op.topProducts, ['productName', 'revenue', 'quantitySold']);
+        html += tableSection('Top Customers', op.topCustomers, ['customerName', 'revenue', 'salesCount']);
+        html += tableSection('Top Vendors', op.topVendors, ['vendorName', 'purchaseTotal', 'purchaseCount']);
+        html += tableSection('Low Stock', op.lowStock, ['variantId', 'locationId', 'quantityOnHand']);
+        html += tableSection('Recent Sales', op.recentSales, ['saleId', 'status', 'grandTotal']);
+        html += tableSection('Recent Purchases', op.recentPurchases, ['purchaseId', 'status', 'grandTotal']);
+        html += tableSection('Recent Expenses', op.recentExpenses, ['expenseId', 'amount', 'description']);
+        container.innerHTML = html;
+      }).catch(function (err) {
+        container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>';
+      });
+    }
+
+    function card(label, value, positive) {
+      var cls = positive === true ? 'positive' : (positive === false ? 'negative' : '');
+      return '<div class="card"><div class="label">' + label + '</div><div class="value ' + cls + '">' + value + '</div></div>';
+    }
+
+    function tableSection(title, rows, cols) {
+      if (!rows || rows.length === 0) return '<div class="section-title">' + title + '</div><div class="placeholder">No data yet</div>';
+      var html = '<div class="section-title">' + title + '</div><table><thead><tr>';
+      cols.forEach(function (c) { html += '<th>' + c + '</th>'; });
+      html += '</tr></thead><tbody>';
+      rows.forEach(function (r) {
+        html += '<tr>';
+        cols.forEach(function (c) { html += '<td>' + (typeof r[c] === 'number' ? fmt(r[c]) : (r[c] || '—')) + '</td>'; });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+  </script>
+</body>
+</html>
