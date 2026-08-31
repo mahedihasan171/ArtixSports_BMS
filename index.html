@@ -52,6 +52,49 @@
     .status-Inactive { background: #fdf3e0; color: #b5730a; }
     .status-Archived { background: #f0f0f0; color: #888; }
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+    /* ===== Toast ===== */
+    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+    .toast { min-width: 260px; max-width: 360px; padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); font-size: 14px; color: #fff; animation: toastIn 0.2s ease-out; }
+    .toast.success { background: #1a7a3c; }
+    .toast.error { background: #c0392b; }
+    .toast.info { background: #2c3e50; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ===== Confirm Dialog ===== */
+    #confirmOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 999; }
+    #confirmOverlay.visible { display: flex; }
+    .confirm-box { background: #fff; border-radius: 10px; padding: 24px; max-width: 380px; width: 90%; }
+    .confirm-box .confirm-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+    .confirm-box .confirm-message { font-size: 14px; color: #555; margin-bottom: 20px; }
+    .confirm-box .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-danger { background: #c0392b; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+
+    /* ===== Status badges — full vocabulary ===== */
+    .status-Draft { background: #eef1f5; color: #556; }
+    .status-Posted, .status-PAID, .status-POSTED { background: #e6f7ec; color: #1a7a3c; }
+    .status-Pending, .status-PARTIALLY_PAID { background: #fdf3e0; color: #b5730a; }
+    .status-Due { background: #fdeaea; color: #c0392b; }
+    .status-Cancelled, .status-CANCELLED, .status-Suspended { background: #f0f0f0; color: #888; }
+    .status-LowStock { background: #fdf3e0; color: #b5730a; }
+    .status-OutOfStock { background: #fdeaea; color: #c0392b; }
+
+    /* ===== Empty / Loading / Error states ===== */
+    .state-box { background: #fff; border-radius: 8px; padding: 40px; text-align: center; color: #999; }
+    .state-box.error-state { color: #c0392b; background: #fdeaea; }
+    .state-box .state-icon { font-size: 28px; margin-bottom: 8px; }
+
+    /* ===== Mobile / responsive ===== */
+    .hamburger { display: none; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 0 20px 12px; }
+    @media (max-width: 820px) {
+      .app-shell.visible { flex-direction: column; }
+      .sidebar { width: 100%; padding: 12px 0; }
+      .hamburger { display: block; }
+      .sidebar .nav-items { display: none; }
+      .sidebar.expanded .nav-items { display: block; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+      .form-row { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
@@ -79,26 +122,42 @@
     <div id="bizList"></div>
   </div>
 
+  <!-- ===== Shared: Toast + Confirm Dialog ===== -->
+  <div id="toastContainer"></div>
+  <div id="confirmOverlay">
+    <div class="confirm-box">
+      <div class="confirm-title" id="confirmTitle"></div>
+      <div class="confirm-message" id="confirmMessage"></div>
+      <div class="confirm-actions">
+        <button class="btn-secondary" id="confirmCancelBtn">Cancel</button>
+        <button class="btn-danger" id="confirmOkBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== MAIN APP SHELL ===== -->
   <div class="app-shell" id="appShell">
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
       <div class="brand">ArtixSport BMS</div>
-      <div class="nav-item active" data-view="dashboard">Dashboard</div>
-      <div class="nav-item" data-view="products">Products</div>
-      <div class="nav-item" data-view="catalog">Catalog Setup</div>
-      <div class="nav-item" data-view="customers">Customers</div>
-      <div class="nav-item" data-view="vendors">Vendors</div>
-      <div class="nav-item" data-view="locations">Locations</div>
-      <div class="nav-item" data-view="purchases">Purchases</div>
-      <div class="nav-item soon" data-view="inventory">Inventory</div>
-      <div class="nav-item soon" data-view="sales">Sales</div>
-      <div class="nav-item soon" data-view="returns">Returns</div>
-      <div class="nav-item soon" data-view="expenses">Expenses</div>
-      <div class="nav-item soon" data-view="finance">Finance</div>
-      <div class="nav-item soon" data-view="profit">Profit</div>
-      <div class="nav-item soon" data-view="allocation">Profit Allocation</div>
-      <div class="nav-item soon" data-view="reports">Reports</div>
-      <div class="nav-item soon" data-view="settings">Settings</div>
+      <button class="hamburger" id="hamburgerBtn">☰ Menu</button>
+      <div class="nav-items">
+        <div class="nav-item active" data-view="dashboard">Dashboard</div>
+        <div class="nav-item" data-view="products">Products</div>
+        <div class="nav-item" data-view="catalog">Catalog Setup</div>
+        <div class="nav-item" data-view="customers">Customers</div>
+        <div class="nav-item" data-view="vendors">Vendors</div>
+        <div class="nav-item" data-view="locations">Locations</div>
+        <div class="nav-item" data-view="purchases">Purchases</div>
+        <div class="nav-item soon" data-view="inventory">Inventory</div>
+        <div class="nav-item soon" data-view="sales">Sales</div>
+        <div class="nav-item soon" data-view="returns">Returns</div>
+        <div class="nav-item soon" data-view="expenses">Expenses</div>
+        <div class="nav-item soon" data-view="finance">Finance</div>
+        <div class="nav-item soon" data-view="profit">Profit</div>
+        <div class="nav-item soon" data-view="allocation">Profit Allocation</div>
+        <div class="nav-item soon" data-view="reports">Reports</div>
+        <div class="nav-item soon" data-view="settings">Settings</div>
+      </div>
     </div>
     <div class="main">
       <div class="topbar">
@@ -281,6 +340,8 @@
       document.getElementById('currentUserName').innerText = currentUser.displayName;
       document.getElementById('currentUserRole').innerText = currentContext.role;
 
+      loadCurrency();
+
       var switcher = document.getElementById('bizSwitcher');
       switcher.innerHTML = '';
       myBusinesses.forEach(function (b) {
@@ -292,11 +353,15 @@
       });
       switcher.onchange = function () { selectBusiness(switcher.value); };
 
+      var hamburgerBtn = document.getElementById('hamburgerBtn');
+      hamburgerBtn.onclick = function () { document.getElementById('sidebar').classList.toggle('expanded'); };
+
       document.querySelectorAll('.nav-item').forEach(function (item) {
         if (item.classList.contains('soon')) return;
         item.onclick = function () {
           document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
           item.classList.add('active');
+          document.getElementById('sidebar').classList.remove('expanded'); // collapse on mobile after choosing
           renderView(item.getAttribute('data-view'));
         };
       });
@@ -316,6 +381,83 @@
       if (typeof n !== 'number') return '—';
       return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+
+    // ============================================================
+    // Shared UX toolkit (UX Phase 1) — Toast, ConfirmDialog, error
+    // translation, currency-aware formatting. Built once, used by
+    // every screen — nothing below duplicates backend business logic,
+    // this is presentation only.
+    // ============================================================
+
+    // --- Toast ---
+    function showToast(message, type) {
+      var el = document.createElement('div');
+      el.className = 'toast ' + (type || 'info');
+      el.innerText = message;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(function () { el.remove(); }, 4000);
+    }
+
+    // --- Confirm Dialog ---
+    function showConfirm(title, message, onConfirm) {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMessage').innerText = message;
+      var overlay = document.getElementById('confirmOverlay');
+      overlay.classList.add('visible');
+      var okBtn = document.getElementById('confirmOkBtn');
+      var cancelBtn = document.getElementById('confirmCancelBtn');
+      function cleanup() { overlay.classList.remove('visible'); okBtn.onclick = null; cancelBtn.onclick = null; }
+      okBtn.onclick = function () { cleanup(); onConfirm(); };
+      cancelBtn.onclick = function () { cleanup(); };
+    }
+
+    // --- Error translation (Section 28) — backend codes to plain language.
+    // The backend's own message text is still shown when we don't have a
+    // specific translation, so nothing is ever silently hidden. ---
+    var ERROR_MESSAGES = {
+      AUTH_REQUIRED: 'Your session has expired. Please sign in again.',
+      FORBIDDEN: 'You don\'t have permission to do that.',
+      INSUFFICIENT_STOCK: 'There isn\'t enough stock available for this.',
+      BUSINESS_SUSPENDED: 'This business is currently suspended. Contact the Owner.',
+      BUSINESS_ARCHIVED: 'This business has been archived and can no longer be changed.',
+      NOT_FOUND: 'That record could not be found — it may have been removed.',
+      INVALID_STATUS_TRANSITION: 'That action isn\'t allowed at this stage.',
+      PERIOD_ALREADY_ALLOCATED: 'This period already has an active profit allocation.',
+      INVALID_CONFIGURATION_CODE: 'That option isn\'t valid — please pick from the list.',
+      LOCK_TIMEOUT: 'The system is busy right now — please try again in a moment.'
+    };
+    function humanizeError(result) {
+      if (result && result.code && ERROR_MESSAGES[result.code]) return ERROR_MESSAGES[result.code];
+      return (result && result.message) || 'Something went wrong. Please try again.';
+    }
+    /** Standard failure handler for any API call — shows a toast, returns nothing. */
+    function handleApiError(result) { showToast(humanizeError(result), 'error'); }
+
+    // --- Currency-aware formatting (Section 41) — fetched once per
+    // business from real Settings, never hardcoded. ---
+    var currentCurrencySymbol = ''; // resolved on business selection
+    var CURRENCY_SYMBOLS = { BDT: '৳', USD: '$', EUR: '€', GBP: '£', INR: '₹' };
+    function loadCurrency() {
+      return callWithSession('getConfiguration', { businessId: currentBusinessId }).then(function (result) {
+        var code = (result.success && result.data && result.data.currency) || 'BDT';
+        currentCurrencySymbol = CURRENCY_SYMBOLS[code] || (code + ' ');
+      }).catch(function () { currentCurrencySymbol = ''; });
+    }
+    function money(n) {
+      if (typeof n !== 'number') return '—';
+      return currentCurrencySymbol + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // --- Status badge — full vocabulary (Section 33), icon text kept
+    // alongside color so status is never color-only. ---
+    function statusBadge(status) {
+      return '<span class="status-pill status-' + status + '">' + status.replace(/_/g, ' ') + '</span>';
+    }
+
+    // --- Standard state renderers (Section 29/Empty states) ---
+    function loadingState(message) { return '<div class="state-box"><div class="state-icon">⏳</div>' + (message || 'Loading…') + '</div>'; }
+    function emptyState(message) { return '<div class="state-box">' + message + '</div>'; }
+    function errorState(message) { return '<div class="state-box error-state"><div class="state-icon">⚠</div>' + message + '</div>'; }
 
     function renderView(view) {
       var container = document.getElementById('viewContainer');
@@ -351,20 +493,20 @@
         var fs = d.financialSummary;
 
         var cardsHtml =
-          card('Revenue', fmt(fs.revenue)) +
-          card('COGS', fmt(fs.cogs)) +
-          card('Gross Profit', fmt(fs.grossProfit), fs.grossProfit >= 0) +
-          card('Operating Expense', fmt(fs.operatingExpense)) +
-          card('Net Profit', fmt(fs.netProfit), fs.netProfit >= 0) +
-          card('Cash', fmt(fs.cashBalance), fs.cashBalance >= 0) +
-          card('Receivable', fmt(fs.receivable)) +
-          card('Payable', fmt(fs.payable)) +
+          card('Revenue', money(fs.revenue)) +
+          card('COGS', money(fs.cogs)) +
+          card('Gross Profit', money(fs.grossProfit), fs.grossProfit >= 0) +
+          card('Operating Expense', money(fs.operatingExpense)) +
+          card('Net Profit', money(fs.netProfit), fs.netProfit >= 0) +
+          card('Cash', money(fs.cashBalance), fs.cashBalance >= 0) +
+          card('Receivable', money(fs.receivable)) +
+          card('Payable', money(fs.payable)) +
           card('Inventory Qty', fmt(fs.inventoryQuantity)) +
-          card('Inventory Value', fmt(fs.inventoryValue)) +
-          card('Profit Reinvested', fmt(fs.profitReinvested)) +
-          card('Profit Distributed', fmt(fs.profitDistributed)) +
-          card('Retained Profit', fmt(fs.retainedProfit)) +
-          card('Available Profit', fmt(fs.availableProfit), fs.availableProfit >= 0);
+          card('Inventory Value', money(fs.inventoryValue)) +
+          card('Profit Reinvested', money(fs.profitReinvested)) +
+          card('Profit Distributed', money(fs.profitDistributed)) +
+          card('Retained Profit', money(fs.retainedProfit)) +
+          card('Available Profit', money(fs.availableProfit), fs.availableProfit >= 0);
 
         var op = d.operational;
         var html = '<div class="card-grid">' + cardsHtml + '</div>';
@@ -1247,23 +1389,27 @@
 
       var postBtn = document.getElementById('submitPostPurchase');
       if (postBtn) postBtn.onclick = function () {
-        var errorEl = document.getElementById('postPurchaseError');
-        errorEl.innerText = '';
-        callWithSession('postPurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
-          if (!result.success) { errorEl.innerText = result.message; return; }
-          if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
-          renderPurchaseDetail(container, p.purchaseId);
-        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        showConfirm('Post this Purchase?', 'Once posted, lines and additional costs can no longer be changed. This cannot be undone.', function () {
+          postBtn.disabled = true; postBtn.innerText = 'Posting…';
+          callWithSession('postPurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
+            if (!result.success) { handleApiError(result); postBtn.disabled = false; postBtn.innerText = 'Post Purchase'; return; }
+            if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
+            showToast('Purchase posted successfully.', 'success');
+            renderPurchaseDetail(container, p.purchaseId);
+          }).catch(function (err) { showToast('Network/server error: ' + err, 'error'); postBtn.disabled = false; postBtn.innerText = 'Post Purchase'; });
+        });
       };
 
       var receiveBtn = document.getElementById('submitReceivePurchase');
       if (receiveBtn) receiveBtn.onclick = function () {
-        var errorEl = document.getElementById('receivePurchaseError');
-        errorEl.innerText = '';
-        callWithSession('receivePurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
-          if (!result.success) { errorEl.innerText = result.message; return; }
-          renderPurchaseDetail(container, p.purchaseId);
-        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        showConfirm('Receive into Inventory?', 'This will add the purchased quantities to your real stock at their landed cost.', function () {
+          receiveBtn.disabled = true; receiveBtn.innerText = 'Receiving…';
+          callWithSession('receivePurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
+            if (!result.success) { handleApiError(result); receiveBtn.disabled = false; receiveBtn.innerText = 'Receive into Inventory'; return; }
+            showToast('Stock received successfully.', 'success');
+            renderPurchaseDetail(container, p.purchaseId);
+          }).catch(function (err) { showToast('Network/server error: ' + err, 'error'); receiveBtn.disabled = false; receiveBtn.innerText = 'Receive into Inventory'; });
+        });
       };
 
       var paymentBtn = document.getElementById('submitPayment');
