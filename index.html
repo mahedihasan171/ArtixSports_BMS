@@ -18,8 +18,8 @@
     .sidebar .nav-item.active { background: #2a3b56; color: #fff; border-left: 3px solid #4f8cff; }
     .sidebar .nav-item.soon { color: #5c6a80; cursor: default; }
     .sidebar .nav-item.soon:hover { background: none; color: #5c6a80; }
-    .main { flex: 1; padding: 30px 40px; overflow-y: auto; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .main { flex: 1; padding: 30px 40px; overflow-y: auto; min-width: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 10px; }
     .topbar .who { font-size: 13px; color: #666; }
     .topbar .biz-name { font-weight: 700; font-size: 20px; }
     select#bizSwitcher { margin-left: 12px; font-size: 13px; padding: 4px 8px; }
@@ -35,27 +35,33 @@
     th { background: #fafafa; color: #666; font-weight: 600; }
     .placeholder { background: #fff; border-radius: 8px; padding: 40px; text-align: center; color: #999; }
     .btn { background: #4f8cff; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .biz-list-item { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     .biz-list-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .role-badge { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #e8f0ff; color: #4f8cff; font-weight: 600; }
     .btn-secondary { background: #fff; color: #4f8cff; border: 1px solid #4f8cff; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-small { padding: 4px 10px; font-size: 12px; border-radius: 5px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .btn-small:disabled { opacity: 0.6; cursor: not-allowed; }
     .form-panel { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
     .form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
     .form-field { flex: 1; min-width: 180px; }
     .form-field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .form-field .required { color: #c0392b; }
     .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; }
     .form-actions { display: flex; gap: 10px; margin-top: 6px; }
     .form-error { color: #c0392b; font-size: 13px; margin-top: 8px; }
-    .status-pill { font-size: 11px; padding: 2px 8px; border-radius: 8px; }
-    .status-Active { background: #e6f7ec; color: #1a7a3c; }
-    .status-Inactive { background: #fdf3e0; color: #b5730a; }
-    .status-Archived { background: #f0f0f0; color: #888; }
-    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .status-pill { font-size: 11px; padding: 2px 8px; border-radius: 8px; display: inline-block; }
+    .status-Active, .status-Posted, .status-POSTED, .status-PAID { background: #e6f7ec; color: #1a7a3c; }
+    .status-Inactive, .status-Pending, .status-PARTIALLY_PAID, .status-Draft, .status-DRAFT { background: #fdf3e0; color: #b5730a; }
+    .status-Due { background: #fdeaea; color: #c0392b; }
+    .status-Archived, .status-Cancelled, .status-CANCELLED, .status-Suspended { background: #f0f0f0; color: #888; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .search-box { padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; min-width: 220px; }
 
     /* ===== Toast ===== */
-    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-    .toast { min-width: 260px; max-width: 360px; padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); font-size: 14px; color: #fff; animation: toastIn 0.2s ease-out; }
+    #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; max-width: 90vw; }
+    .toast { min-width: 260px; max-width: 380px; padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); font-size: 14px; color: #fff; animation: toastIn 0.2s ease-out; white-space: pre-line; }
     .toast.success { background: #1a7a3c; }
     .toast.error { background: #c0392b; }
     .toast.info { background: #2c3e50; }
@@ -70,36 +76,30 @@
     .confirm-box .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
     .btn-danger { background: #c0392b; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
 
-    /* ===== Status badges — full vocabulary ===== */
-    .status-Draft { background: #eef1f5; color: #556; }
-    .status-Posted, .status-PAID, .status-POSTED { background: #e6f7ec; color: #1a7a3c; }
-    .status-Pending, .status-PARTIALLY_PAID { background: #fdf3e0; color: #b5730a; }
-    .status-Due { background: #fdeaea; color: #c0392b; }
-    .status-Cancelled, .status-CANCELLED, .status-Suspended { background: #f0f0f0; color: #888; }
-    .status-LowStock { background: #fdf3e0; color: #b5730a; }
-    .status-OutOfStock { background: #fdeaea; color: #c0392b; }
-
     /* ===== Empty / Loading / Error states ===== */
     .state-box { background: #fff; border-radius: 8px; padding: 40px; text-align: center; color: #999; }
     .state-box.error-state { color: #c0392b; background: #fdeaea; }
-    .state-box .state-icon { font-size: 28px; margin-bottom: 8px; }
+    .state-box .state-icon { font-size: 26px; margin-bottom: 8px; }
+    .state-box .state-action { margin-top: 14px; }
 
     /* ===== Mobile / responsive ===== */
-    .hamburger { display: none; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 0 20px 12px; }
+    .hamburger { display: none; background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 20px 12px; text-align: left; width: 100%; }
     @media (max-width: 820px) {
       .app-shell.visible { flex-direction: column; }
       .sidebar { width: 100%; padding: 12px 0; }
       .hamburger { display: block; }
       .sidebar .nav-items { display: none; }
       .sidebar.expanded .nav-items { display: block; }
+      .main { padding: 16px; }
       table { display: block; overflow-x: auto; white-space: nowrap; }
       .form-row { flex-direction: column; }
+      .card-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
     }
   </style>
 </head>
 <body>
 
-  <!-- ===== LOADING SCREEN (shown while checking for a saved session) ===== -->
+  <!-- ===== LOADING SCREEN ===== -->
   <div class="center-screen" id="loadingScreen">
     <p style="color:#666">Loading…</p>
   </div>
@@ -185,16 +185,13 @@
     var currentContext = null; // { business, membership, role, permissions }
     var myBusinesses = [];
 
-    // Simple per-business, per-view cache. Nav clicks between
-    // already-visited screens render instantly from here instead of
-    // re-fetching every time — a real network round-trip only happens
-    // on first visit or an explicit Refresh click.
-    var viewCache = {}; // { businessId: { products: {...}, catalog: {...} } }
+    var viewCache = {}; // { businessId: { products: {...}, catalog: {...}, ... } }
     function getCache(view) { return viewCache[currentBusinessId] && viewCache[currentBusinessId][view]; }
     function setCache(view, data) {
       if (!viewCache[currentBusinessId]) viewCache[currentBusinessId] = {};
       viewCache[currentBusinessId][view] = data;
     }
+    function invalidateCache(view) { if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId][view]; }
 
     function callAppsScript(action, extra) {
       var body = Object.assign({ action: action }, extra || {});
@@ -210,32 +207,116 @@
     }
 
     // ============================================================
-    // Login -> resolve Current User once, never re-ask
+    // Shared UX toolkit — THE canonical implementation. Every screen
+    // below uses these exclusively; no screen defines a local
+    // equivalent (per the standardization instruction, Section 3).
+    // ============================================================
+
+    // --- Toast ---
+    function showToast(message, type) {
+      var el = document.createElement('div');
+      el.className = 'toast ' + (type || 'info');
+      el.innerText = message;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(function () { el.remove(); }, 4500);
+    }
+
+    // --- Confirm Dialog ---
+    function showConfirm(title, message, onConfirm) {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMessage').innerText = message;
+      var overlay = document.getElementById('confirmOverlay');
+      overlay.classList.add('visible');
+      var okBtn = document.getElementById('confirmOkBtn');
+      var cancelBtn = document.getElementById('confirmCancelBtn');
+      function cleanup() { overlay.classList.remove('visible'); okBtn.onclick = null; cancelBtn.onclick = null; }
+      okBtn.onclick = function () { cleanup(); onConfirm(); };
+      cancelBtn.onclick = function () { cleanup(); };
+      okBtn.focus();
+    }
+
+    // --- Error translation (Section 6) ---
+    var ERROR_MESSAGES = {
+      AUTH_REQUIRED: 'Your session has expired. Please sign in again.',
+      FORBIDDEN: 'You don\'t have permission to perform this action.',
+      NOT_FOUND: 'The requested record could not be found.',
+      VALIDATION_ERROR: 'Please check the highlighted information.',
+      INSUFFICIENT_STOCK: 'There isn\'t enough stock available for this product.',
+      BUSINESS_SUSPENDED: 'This business is currently suspended. Changes cannot be made.',
+      BUSINESS_ARCHIVED: 'This business is archived and cannot be modified.',
+      OWNER_REMOVAL_BLOCKED: 'The active owner cannot be removed because the business must have an owner.',
+      INVALID_STATUS_TRANSITION: 'That action isn\'t allowed at this stage.',
+      PERIOD_ALREADY_ALLOCATED: 'This period already has an active profit allocation.',
+      INVALID_CONFIGURATION_CODE: 'That option isn\'t valid — please pick from the list.',
+      INVALID_REFERENCE: 'One of the selected items is no longer valid — please refresh and try again.',
+      LOCK_TIMEOUT: 'The system is busy right now — please try again in a moment.'
+    };
+    function humanizeError(result) {
+      if (result && result.code && ERROR_MESSAGES[result.code]) return ERROR_MESSAGES[result.code];
+      return (result && result.message) || 'Something went wrong. Please try again.';
+    }
+    /** For consequential/action-level failures — shows a toast. */
+    function handleApiError(result) { showToast(humanizeError(result), 'error'); }
+    /** For inline form-submission failures — shown next to the button, humanized either way. */
+    function showFormError(el, result) { el.innerText = humanizeError(result); }
+
+    // --- Currency-aware formatting (Section 14) ---
+    var currentCurrencySymbol = '';
+    var CURRENCY_SYMBOLS = { BDT: '৳', USD: '$', EUR: '€', GBP: '£', INR: '₹' };
+    function loadCurrency() {
+      return callWithSession('getConfiguration', { businessId: currentBusinessId }).then(function (result) {
+        var code = (result.success && result.data && result.data.currency) || 'BDT';
+        currentCurrencySymbol = CURRENCY_SYMBOLS[code] || (code + ' ');
+      }).catch(function () { currentCurrencySymbol = ''; });
+    }
+    function fmt(n) {
+      if (typeof n !== 'number') return '—';
+      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function money(n) {
+      if (typeof n !== 'number') return '—';
+      return currentCurrencySymbol + fmt(n);
+    }
+
+    // --- Status badge (Section 9) ---
+    function statusBadge(status) {
+      return '<span class="status-pill status-' + status + '">' + String(status).replace(/_/g, ' ') + '</span>';
+    }
+
+    // --- Standard state renderers (Sections 7/8) ---
+    function loadingState(message) { return '<div class="state-box"><div class="state-icon">⏳</div>' + (message || 'Loading…') + '</div>'; }
+    function emptyState(message, actionHtml) { return '<div class="state-box">' + message + (actionHtml ? '<div class="state-action">' + actionHtml + '</div>' : '') + '</div>'; }
+    function errorState(message) { return '<div class="state-box error-state"><div class="state-icon">⚠</div>' + message + '</div>'; }
+
+    // --- Debounce helper for search inputs (Section 12) ---
+    function debounce(fn, delayMs) {
+      var timer = null;
+      return function () {
+        var args = arguments;
+        clearTimeout(timer);
+        timer = setTimeout(function () { fn.apply(null, args); }, delayMs || 250);
+      };
+    }
+
+    // ============================================================
+    // Login
     // ============================================================
     function handleCredentialResponse(response) {
       callAppsScript('login', { idToken: response.credential }).then(function (result) {
         if (!result.success) {
-          document.getElementById('loginStatus').innerText = 'Login failed: ' + result.message;
+          document.getElementById('loginStatus').innerText = humanizeError(result);
           return;
         }
         currentSessionToken = result.data.sessionToken;
-        currentUser = result.data; // { userId, displayName, email }
+        currentUser = result.data;
         sessionStorage.setItem('artix_session_token', currentSessionToken);
         sessionStorage.setItem('artix_current_user', JSON.stringify(currentUser));
         showBusinessSelector();
       }).catch(function (err) {
-        document.getElementById('loginStatus').innerText = 'Network/server error: ' + err;
+        document.getElementById('loginStatus').innerText = 'Network error: ' + err;
       });
     }
 
-    /**
-     * Runs once on page load. Decides SYNCHRONOUSLY (before any fetch)
-     * whether to show the login form (no saved session — no loading
-     * flash needed) or keep showing "Loading…" (already visible by
-     * default) while a saved token gets validated. The two independent
-     * calls needed to resume (list businesses for the switcher, select
-     * the last-used business) run in PARALLEL, not sequentially.
-     */
     function tryResumeSession() {
       var savedToken = sessionStorage.getItem('artix_session_token');
       var savedUser = sessionStorage.getItem('artix_current_user');
@@ -298,7 +379,7 @@
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('bizSelectScreen').style.display = 'block';
       callWithSession('listMyBusinesses', {}).then(function (result) {
-        if (!result.success) { alert('Could not load businesses: ' + result.message); return; }
+        if (!result.success) { showToast(humanizeError(result), 'error'); return; }
         myBusinesses = result.data;
         renderBusinessList();
       });
@@ -308,7 +389,7 @@
       var listEl = document.getElementById('bizList');
       listEl.innerHTML = '';
       if (myBusinesses.length === 0) {
-        listEl.innerHTML = '<p style="color:#999">No businesses yet. Contact your Owner for access.</p>';
+        listEl.innerHTML = emptyState('No businesses yet. Contact your Owner for access.');
         return;
       }
       myBusinesses.forEach(function (b) {
@@ -322,7 +403,7 @@
 
     function selectBusiness(businessId) {
       callWithSession('selectBusiness', { businessId: businessId }).then(function (result) {
-        if (!result.success) { alert('Could not select business: ' + result.message); return; }
+        if (!result.success) { showToast(humanizeError(result), 'error'); return; }
         currentBusinessId = businessId;
         currentContext = result.data;
         sessionStorage.setItem('artix_current_business_id', businessId);
@@ -361,7 +442,7 @@
         item.onclick = function () {
           document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
           item.classList.add('active');
-          document.getElementById('sidebar').classList.remove('expanded'); // collapse on mobile after choosing
+          document.getElementById('sidebar').classList.remove('expanded');
           renderView(item.getAttribute('data-view'));
         };
       });
@@ -377,88 +458,6 @@
       renderView('dashboard');
     }
 
-    function fmt(n) {
-      if (typeof n !== 'number') return '—';
-      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    // ============================================================
-    // Shared UX toolkit (UX Phase 1) — Toast, ConfirmDialog, error
-    // translation, currency-aware formatting. Built once, used by
-    // every screen — nothing below duplicates backend business logic,
-    // this is presentation only.
-    // ============================================================
-
-    // --- Toast ---
-    function showToast(message, type) {
-      var el = document.createElement('div');
-      el.className = 'toast ' + (type || 'info');
-      el.innerText = message;
-      document.getElementById('toastContainer').appendChild(el);
-      setTimeout(function () { el.remove(); }, 4000);
-    }
-
-    // --- Confirm Dialog ---
-    function showConfirm(title, message, onConfirm) {
-      document.getElementById('confirmTitle').innerText = title;
-      document.getElementById('confirmMessage').innerText = message;
-      var overlay = document.getElementById('confirmOverlay');
-      overlay.classList.add('visible');
-      var okBtn = document.getElementById('confirmOkBtn');
-      var cancelBtn = document.getElementById('confirmCancelBtn');
-      function cleanup() { overlay.classList.remove('visible'); okBtn.onclick = null; cancelBtn.onclick = null; }
-      okBtn.onclick = function () { cleanup(); onConfirm(); };
-      cancelBtn.onclick = function () { cleanup(); };
-    }
-
-    // --- Error translation (Section 28) — backend codes to plain language.
-    // The backend's own message text is still shown when we don't have a
-    // specific translation, so nothing is ever silently hidden. ---
-    var ERROR_MESSAGES = {
-      AUTH_REQUIRED: 'Your session has expired. Please sign in again.',
-      FORBIDDEN: 'You don\'t have permission to do that.',
-      INSUFFICIENT_STOCK: 'There isn\'t enough stock available for this.',
-      BUSINESS_SUSPENDED: 'This business is currently suspended. Contact the Owner.',
-      BUSINESS_ARCHIVED: 'This business has been archived and can no longer be changed.',
-      NOT_FOUND: 'That record could not be found — it may have been removed.',
-      INVALID_STATUS_TRANSITION: 'That action isn\'t allowed at this stage.',
-      PERIOD_ALREADY_ALLOCATED: 'This period already has an active profit allocation.',
-      INVALID_CONFIGURATION_CODE: 'That option isn\'t valid — please pick from the list.',
-      LOCK_TIMEOUT: 'The system is busy right now — please try again in a moment.'
-    };
-    function humanizeError(result) {
-      if (result && result.code && ERROR_MESSAGES[result.code]) return ERROR_MESSAGES[result.code];
-      return (result && result.message) || 'Something went wrong. Please try again.';
-    }
-    /** Standard failure handler for any API call — shows a toast, returns nothing. */
-    function handleApiError(result) { showToast(humanizeError(result), 'error'); }
-
-    // --- Currency-aware formatting (Section 41) — fetched once per
-    // business from real Settings, never hardcoded. ---
-    var currentCurrencySymbol = ''; // resolved on business selection
-    var CURRENCY_SYMBOLS = { BDT: '৳', USD: '$', EUR: '€', GBP: '£', INR: '₹' };
-    function loadCurrency() {
-      return callWithSession('getConfiguration', { businessId: currentBusinessId }).then(function (result) {
-        var code = (result.success && result.data && result.data.currency) || 'BDT';
-        currentCurrencySymbol = CURRENCY_SYMBOLS[code] || (code + ' ');
-      }).catch(function () { currentCurrencySymbol = ''; });
-    }
-    function money(n) {
-      if (typeof n !== 'number') return '—';
-      return currentCurrencySymbol + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    // --- Status badge — full vocabulary (Section 33), icon text kept
-    // alongside color so status is never color-only. ---
-    function statusBadge(status) {
-      return '<span class="status-pill status-' + status + '">' + status.replace(/_/g, ' ') + '</span>';
-    }
-
-    // --- Standard state renderers (Section 29/Empty states) ---
-    function loadingState(message) { return '<div class="state-box"><div class="state-icon">⏳</div>' + (message || 'Loading…') + '</div>'; }
-    function emptyState(message) { return '<div class="state-box">' + message + '</div>'; }
-    function errorState(message) { return '<div class="state-box error-state"><div class="state-icon">⚠</div>' + message + '</div>'; }
-
     function renderView(view) {
       var container = document.getElementById('viewContainer');
       if (view === 'products') { renderProducts(container); return; }
@@ -468,7 +467,7 @@
       if (view === 'locations') { renderLocations(container); return; }
       if (view === 'purchases') { renderPurchasesList(container); return; }
       if (view !== 'dashboard') {
-        container.innerHTML = '<div class="placeholder">This section (' + view + ') is coming in the next build pass.</div>';
+        container.innerHTML = emptyState('This section (' + view + ') is coming in the next build pass.');
         return;
       }
       renderDashboard(container);
@@ -478,17 +477,16 @@
     // Dashboard
     // ============================================================
     function renderDashboard(container) {
-      container.innerHTML = '<div class="placeholder">Loading dashboard…</div>';
+      container.innerHTML = loadingState('Loading dashboard…');
 
       if (currentContext.permissions.indexOf('PROFIT_ALLOCATION_VIEW') === -1) {
-        container.innerHTML = '<div class="placeholder">The Dashboard combines financial figures (Cash, Profit, Reinvestment) that are only shown to Owners and Managers. '
-          + 'As a ' + currentContext.role + ', you can still use the individual sections in the sidebar once they\'re built '
-          + '(Products, Sales, Inventory, etc.) — just not this combined financial overview.</div>';
+        container.innerHTML = emptyState('The Dashboard combines financial figures (Cash, Profit, Reinvestment) that are only shown to Owners and Managers. '
+          + 'As a ' + currentContext.role + ', you can still use the individual sections in the sidebar once they\'re built.');
         return;
       }
 
       callWithSession('getDashboard', { businessId: currentBusinessId, options: { topN: 5, lowStockThreshold: 10 } }).then(function (result) {
-        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        if (!result.success) { container.innerHTML = errorState(humanizeError(result)); return; }
         var d = result.data;
         var fs = d.financialSummary;
 
@@ -519,7 +517,7 @@
         html += tableSection('Recent Expenses', op.recentExpenses, ['expenseId', 'amount', 'description']);
         container.innerHTML = html;
       }).catch(function (err) {
-        container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>';
+        container.innerHTML = errorState('Network error: ' + err);
       });
     }
 
@@ -529,7 +527,7 @@
     }
 
     function tableSection(title, rows, cols) {
-      if (!rows || rows.length === 0) return '<div class="section-title">' + title + '</div><div class="placeholder">No data yet</div>';
+      if (!rows || rows.length === 0) return '<div class="section-title">' + title + '</div>' + emptyState('No data yet');
       var html = '<div class="section-title">' + title + '</div><table><thead><tr>';
       cols.forEach(function (c) { html += '<th>' + c + '</th>'; });
       html += '</tr></thead><tbody>';
@@ -543,35 +541,29 @@
     }
 
     function optionsFor_(list, idKey, labelKey) {
-      return list.map(function (item) {
-        return '<option value="' + item[idKey] + '">' + item[labelKey] + '</option>';
-      }).join('');
+      return list.map(function (item) { return '<option value="' + item[idKey] + '">' + item[labelKey] + '</option>'; }).join('');
     }
+    function refreshButton_(view) { return '<button class="btn-secondary" id="refreshBtn_' + view + '">↻ Refresh</button>'; }
 
-    function refreshButton_(view, label) {
-      return '<button class="btn-secondary" id="refreshBtn_' + view + '">↻ ' + (label || 'Refresh') + '</button>';
+    /** Disable a button and swap its label while an async action runs; restore on completion either way. */
+    function withButtonBusy(btn, busyLabel, fn) {
+      var originalLabel = btn.innerText;
+      btn.disabled = true;
+      btn.innerText = busyLabel;
+      function restore() { btn.disabled = false; btn.innerText = originalLabel; }
+      fn(restore);
     }
 
     // ============================================================
-    // Products — Category/Brand/ProductType/Unit resolved from real
-    // Master Data via dropdowns (managed on the separate Catalog Setup
-    // screen), never a manually-typed ID. Scoped to simple (non-
-    // variant) products this pass — variant creation/management is a
-    // separate, larger UI, deferred on purpose, not silently missing.
-    // Cached per business — a nav click back to Products after visiting
-    // another screen renders instantly; only first-visit or an
-    // explicit Refresh click hits the network.
+    // Products
     // ============================================================
     var productsPageData = { categories: [], brands: [], productTypes: [], units: [], products: [] };
+    var productsSearchTerm = '';
 
     function renderProducts(container, forceRefresh) {
       var cached = getCache('products');
-      if (cached && !forceRefresh) {
-        productsPageData = cached;
-        drawProductsScreen(container);
-        return;
-      }
-      container.innerHTML = '<div class="placeholder">Loading products…</div>';
+      if (cached && !forceRefresh) { productsPageData = cached; drawProductsScreen(container); return; }
+      container.innerHTML = loadingState('Loading products…');
       Promise.all([
         callWithSession('listCategories', { businessId: currentBusinessId }),
         callWithSession('listBrands', { businessId: currentBusinessId }),
@@ -580,23 +572,20 @@
         callWithSession('listProducts', { businessId: currentBusinessId })
       ]).then(function (results) {
         var failed = results.find(function (r) { return !r.success; });
-        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
-        productsPageData = {
-          categories: results[0].data, brands: results[1].data, productTypes: results[2].data,
-          units: results[3].data, products: results[4].data
-        };
+        if (failed) { container.innerHTML = errorState(humanizeError(failed)); return; }
+        productsPageData = { categories: results[0].data, brands: results[1].data, productTypes: results[2].data, units: results[3].data, products: results[4].data };
         setCache('products', productsPageData);
         drawProductsScreen(container);
-      }).catch(function (err) {
-        container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>';
-      });
+      }).catch(function (err) { container.innerHTML = errorState('Network error: ' + err); });
     }
 
     function drawProductsScreen(container) {
       var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
       var d = productsPageData;
+      var visibleProducts = d.products.filter(function (p) { return !productsSearchTerm || p.productName.toLowerCase().indexOf(productsSearchTerm.toLowerCase()) !== -1; });
 
-      var html = '<div class="header-row"><div></div><div>' + refreshButton_('products');
+      var html = '<div class="header-row"><input type="text" class="search-box" id="productsSearch" placeholder="Search products…" value="' + productsSearchTerm.replace(/"/g, '') + '">'
+        + '<div>' + refreshButton_('products');
       if (canManage) html += ' <button class="btn" id="toggleCreateProductForm">+ New Product</button>';
       html += '</div></div>';
 
@@ -604,24 +593,21 @@
         var hasPrereqs = d.categories.length > 0 && d.productTypes.length > 0 && d.units.length > 0;
         html += '<div class="form-panel" id="createProductForm" style="display:none;">';
         if (!hasPrereqs) {
-          html += '<p style="color:#b5730a">You need at least one Category, ProductType, and Unit before creating a Product. '
-            + 'Go to "Catalog Setup" in the sidebar to add them.</p>';
+          html += '<p style="color:#b5730a">You need at least one Category, ProductType, and Unit before creating a Product. Go to "Catalog Setup" in the sidebar to add them.</p>';
         } else {
           html += '<div class="form-row">'
-            + '<div class="form-field"><label>Product Name</label><input type="text" id="newProductName"></div>'
-            + '<div class="form-field"><label>Category</label><select id="newProductCategory">' + optionsFor_(d.categories, 'categoryId', 'categoryName') + '</select></div>'
-            + '<div class="form-field"><label>Product Type</label><select id="newProductType">' + optionsFor_(d.productTypes, 'productTypeId', 'typeName') + '</select></div>'
-            + '</div>';
-          html += '<div class="form-row">'
-            + '<div class="form-field"><label>Brand (optional)</label><select id="newProductBrand"><option value="">—</option>' + optionsFor_(d.brands, 'brandId', 'brandName') + '</select></div>'
-            + '<div class="form-field"><label>Unit</label><select id="newProductUnit">' + optionsFor_(d.units, 'unitId', 'unitName') + '</select></div>'
-            + '<div class="form-field"><label>Selling Price</label><input type="number" id="newProductPrice" step="0.01"></div>'
-            + '</div>';
-          html += '<div class="form-row">'
-            + '<div class="form-field"><label>SKU (optional)</label><input type="text" id="newProductSku"></div>'
-            + '<div class="form-field"><label>Description (optional)</label><input type="text" id="newProductDescription"></div>'
-            + '</div>';
-          html += '<div class="form-actions"><button class="btn" id="submitCreateProduct">Create Product</button>'
+            + '<div class="form-field"><label>Product Name <span class="required">*</span></label><input type="text" id="newProductName" placeholder="e.g. Football"></div>'
+            + '<div class="form-field"><label>Category <span class="required">*</span></label><select id="newProductCategory">' + optionsFor_(d.categories, 'categoryId', 'categoryName') + '</select></div>'
+            + '<div class="form-field"><label>Product Type <span class="required">*</span></label><select id="newProductType">' + optionsFor_(d.productTypes, 'productTypeId', 'typeName') + '</select></div>'
+            + '</div><div class="form-row">'
+            + '<div class="form-field"><label>Brand</label><select id="newProductBrand"><option value="">—</option>' + optionsFor_(d.brands, 'brandId', 'brandName') + '</select></div>'
+            + '<div class="form-field"><label>Unit <span class="required">*</span></label><select id="newProductUnit">' + optionsFor_(d.units, 'unitId', 'unitName') + '</select></div>'
+            + '<div class="form-field"><label>Selling Price</label><input type="number" id="newProductPrice" step="0.01" placeholder="0.00"></div>'
+            + '</div><div class="form-row">'
+            + '<div class="form-field"><label>SKU</label><input type="text" id="newProductSku"></div>'
+            + '<div class="form-field"><label>Description</label><input type="text" id="newProductDescription"></div>'
+            + '</div>'
+            + '<div class="form-actions"><button class="btn" id="submitCreateProduct">Create Product</button>'
             + '<button class="btn-secondary" id="cancelCreateProduct">Cancel</button></div>'
             + '<div class="form-error" id="createProductError"></div>';
         }
@@ -629,10 +615,12 @@
       }
 
       if (d.products.length === 0) {
-        html += '<div class="placeholder">No products yet.' + (canManage ? ' Click "+ New Product" to add one.' : '') + '</div>';
+        html += emptyState('No products yet.', canManage ? '<button class="btn" id="emptyAddProduct">+ Add Product</button>' : '');
+      } else if (visibleProducts.length === 0) {
+        html += emptyState('No products match your search. Try another name.');
       } else {
         html += '<table><thead><tr><th>Name</th><th>Category</th><th>Brand</th><th>Type</th><th>Has Variants</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
-        d.products.forEach(function (p) {
+        visibleProducts.forEach(function (p) {
           var cat = d.categories.find(function (c) { return c.categoryId === p.categoryId; });
           var brand = d.brands.find(function (b) { return b.brandId === p.brandId; });
           var ptype = d.productTypes.find(function (t) { return t.productTypeId === p.productTypeId; });
@@ -642,8 +630,8 @@
             + '<td>' + (brand ? brand.brandName : '—') + '</td>'
             + '<td>' + (ptype ? ptype.typeName : '—') + '</td>'
             + '<td>' + (p.hasVariants ? 'Yes' : 'No') + '</td>'
-            + '<td><span class="status-pill status-' + p.status + '">' + p.status + '</span></td>';
-          if (canManage) html += '<td>' + statusActionButtons_(p) + '</td>';
+            + '<td>' + statusBadge(p.status) + '</td>';
+          if (canManage) html += '<td>' + statusActionButtons_(p, 'productId') + '</td>';
           html += '</tr>';
         });
         html += '</tbody></table>';
@@ -651,45 +639,60 @@
 
       container.innerHTML = html;
 
+      var searchInput = document.getElementById('productsSearch');
+      if (searchInput) searchInput.oninput = debounce(function () { productsSearchTerm = searchInput.value; drawProductsScreen(container); var el = document.getElementById('productsSearch'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 200);
+
       var refreshBtn = document.getElementById('refreshBtn_products');
       if (refreshBtn) refreshBtn.onclick = function () { renderProducts(container, true); };
 
       if (canManage) {
         var formEl = document.getElementById('createProductForm');
+        var openForm = function () { formEl.style.display = 'block'; };
         var toggleBtn = document.getElementById('toggleCreateProductForm');
         if (toggleBtn) toggleBtn.onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var emptyBtn = document.getElementById('emptyAddProduct');
+        if (emptyBtn) emptyBtn.onclick = openForm;
         var cancelBtn = document.getElementById('cancelCreateProduct');
         if (cancelBtn) cancelBtn.onclick = function () { formEl.style.display = 'none'; };
         var submitBtn = document.getElementById('submitCreateProduct');
-        if (submitBtn) submitBtn.onclick = submitCreateProduct;
+        if (submitBtn) submitBtn.onclick = function () { withButtonBusy(submitBtn, 'Creating…', function (restore) { submitCreateProduct(container, restore); }); };
 
         container.querySelectorAll('[data-status-action]').forEach(function (btn) {
           btn.onclick = function () {
-            var productId = btn.getAttribute('data-product-id');
+            var productId = btn.getAttribute('data-entity-id');
             var newStatus = btn.getAttribute('data-status-action');
-            callWithSession('setProductStatus', { businessId: currentBusinessId, productId: productId, status: newStatus }).then(function (result) {
-              if (!result.success) { alert(result.message); return; }
-              renderProducts(container, true);
+            showConfirm('Change status to ' + newStatus + '?', 'This will update the product\'s visibility and availability.', function () {
+              withButtonBusy(btn, '…', function (restore) {
+                callWithSession('setProductStatus', { businessId: currentBusinessId, productId: productId, status: newStatus }).then(function (result) {
+                  restore();
+                  if (!result.success) { handleApiError(result); return; }
+                  showToast('Product status updated.', 'success');
+                  invalidateCache('products');
+                  renderProducts(container, true);
+                });
+              });
             });
           };
         });
       }
     }
 
-    function statusActionButtons_(product) {
+    function statusActionButtons_(entity, idField) {
       var buttons = '';
-      if (product.status !== 'Active') buttons += '<button class="btn-small" data-status-action="Active" data-product-id="' + product.productId + '">Activate</button> ';
-      if (product.status !== 'Inactive') buttons += '<button class="btn-small" data-status-action="Inactive" data-product-id="' + product.productId + '">Deactivate</button> ';
-      if (product.status !== 'Archived') buttons += '<button class="btn-small" data-status-action="Archived" data-product-id="' + product.productId + '">Archive</button>';
+      if (entity.status !== 'Active') buttons += '<button class="btn-small" data-status-action="Active" data-entity-id="' + entity[idField] + '">Activate</button> ';
+      if (entity.status !== 'Inactive') buttons += '<button class="btn-small" data-status-action="Inactive" data-entity-id="' + entity[idField] + '">Deactivate</button> ';
+      if (entity.status !== 'Archived') buttons += '<button class="btn-small" data-status-action="Archived" data-entity-id="' + entity[idField] + '">Archive</button>';
       return buttons;
     }
 
-    function submitCreateProduct() {
+    function submitCreateProduct(container, restore) {
       var errorEl = document.getElementById('createProductError');
       errorEl.innerText = '';
+      var name = document.getElementById('newProductName').value.trim();
+      if (!name) { errorEl.innerText = 'Product name is required.'; restore(); return; }
 
       var input = {
-        productName: document.getElementById('newProductName').value.trim(),
+        productName: name,
         categoryId: document.getElementById('newProductCategory').value,
         productTypeId: document.getElementById('newProductType').value,
         brandId: document.getElementById('newProductBrand').value || undefined,
@@ -700,33 +703,25 @@
         defaultSellingPrice: document.getElementById('newProductPrice').value ? parseFloat(document.getElementById('newProductPrice').value) : undefined
       };
 
-      if (!input.productName) { errorEl.innerText = 'Product name is required.'; return; }
-
       callWithSession('createProduct', { businessId: currentBusinessId, input: input }).then(function (result) {
-        if (!result.success) { errorEl.innerText = result.message; return; }
-        var container = document.getElementById('viewContainer');
-        renderProducts(container, true); // force refresh since data changed
-      }).catch(function (err) {
-        errorEl.innerText = 'Network/server error: ' + err;
-      });
+        restore();
+        if (!result.success) { showFormError(errorEl, result); return; }
+        var p = result.data.product;
+        showToast('Product created successfully.\n' + p.productName + (input.defaultSku ? ' — SKU: ' + input.defaultSku : ''), 'success');
+        invalidateCache('products');
+        renderProducts(container, true);
+      }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
     }
 
     // ============================================================
-    // Catalog Setup — Category (max 2 levels), Brand, ProductType,
-    // Unit (base/derived conversion). The single, sole place these
-    // are managed (Products screen only reads them via dropdowns).
-    // Cached per business, same pattern as Products.
+    // Catalog Setup
     // ============================================================
     var catalogData = { categories: [], brands: [], productTypes: [], units: [] };
 
     function renderCatalog(container, forceRefresh) {
       var cached = getCache('catalog');
-      if (cached && !forceRefresh) {
-        catalogData = cached;
-        drawCatalogScreen(container);
-        return;
-      }
-      container.innerHTML = '<div class="placeholder">Loading catalog…</div>';
+      if (cached && !forceRefresh) { catalogData = cached; drawCatalogScreen(container); return; }
+      container.innerHTML = loadingState('Loading catalog…');
       Promise.all([
         callWithSession('listCategories', { businessId: currentBusinessId }),
         callWithSession('listBrands', { businessId: currentBusinessId }),
@@ -734,24 +729,21 @@
         callWithSession('listUnits', { businessId: currentBusinessId })
       ]).then(function (results) {
         var failed = results.find(function (r) { return !r.success; });
-        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
+        if (failed) { container.innerHTML = errorState(humanizeError(failed)); return; }
         catalogData = { categories: results[0].data, brands: results[1].data, productTypes: results[2].data, units: results[3].data };
         setCache('catalog', catalogData);
-        // Products' own cache may now be stale (its dropdowns read this same Master Data) — clear it so its next visit re-fetches.
-        if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].products;
+        invalidateCache('products'); // Products' dropdowns read this same data
         drawCatalogScreen(container);
-      }).catch(function (err) {
-        container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>';
-      });
+      }).catch(function (err) { container.innerHTML = errorState('Network error: ' + err); });
     }
 
     function drawCatalogScreen(container) {
       var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
       var html = '<div class="header-row"><div></div><div>' + refreshButton_('catalog') + '</div></div>';
-      html += catalogSection_('Categories', 'category', canManage, catalogCategoryFormFields_(), catalogCategoryRows_());
-      html += catalogSection_('Brands', 'brand', canManage, '<div class="form-field"><label>Brand Name</label><input type="text" id="new_brand_name"></div>', catalogSimpleRows_(catalogData.brands, 'brandId', 'brandName'));
-      html += catalogSection_('Product Types', 'productType', canManage, '<div class="form-field"><label>Type Name</label><input type="text" id="new_productType_name"></div>', catalogSimpleRows_(catalogData.productTypes, 'productTypeId', 'typeName'));
-      html += catalogSection_('Units', 'unit', canManage, catalogUnitFormFields_(), catalogUnitRows_());
+      html += catalogSection_('Categories', 'category', canManage, catalogCategoryFormFields_(), catalogCategoryRows_(canManage));
+      html += catalogSection_('Brands', 'brand', canManage, '<div class="form-field"><label>Brand Name <span class="required">*</span></label><input type="text" id="new_brand_name"></div>', catalogSimpleRows_(catalogData.brands, 'brandId', 'brandName', canManage));
+      html += catalogSection_('Product Types', 'productType', canManage, '<div class="form-field"><label>Type Name <span class="required">*</span></label><input type="text" id="new_productType_name"></div>', catalogSimpleRows_(catalogData.productTypes, 'productTypeId', 'typeName', canManage));
+      html += catalogSection_('Units', 'unit', canManage, catalogUnitFormFields_(), catalogUnitRows_(canManage));
       container.innerHTML = html;
 
       var refreshBtn = document.getElementById('refreshBtn_catalog');
@@ -776,45 +768,43 @@
 
     function catalogCategoryFormFields_() {
       var topLevel = catalogData.categories.filter(function (c) { return !c.parentCategoryId; });
-      return '<div class="form-field"><label>Category Name</label><input type="text" id="new_category_name"></div>'
-        + '<div class="form-field"><label>Parent (optional — leave blank for a top-level Category)</label>'
+      return '<div class="form-field"><label>Category Name <span class="required">*</span></label><input type="text" id="new_category_name"></div>'
+        + '<div class="form-field"><label>Parent (leave blank for top-level)</label>'
         + '<select id="new_category_parent"><option value="">— Top level —</option>' + optionsFor_(topLevel, 'categoryId', 'categoryName') + '</select></div>';
     }
 
     function catalogUnitFormFields_() {
       var baseUnits = catalogData.units.filter(function (u) { return !u.baseUnitId; });
-      return '<div class="form-field"><label>Unit Name</label><input type="text" id="new_unit_name"></div>'
-        + '<div class="form-field"><label>Symbol (optional)</label><input type="text" id="new_unit_symbol"></div>'
-        + '<div class="form-field"><label>Base Unit (optional — for a derived unit like "Dozen")</label>'
+      return '<div class="form-field"><label>Unit Name <span class="required">*</span></label><input type="text" id="new_unit_name"></div>'
+        + '<div class="form-field"><label>Symbol</label><input type="text" id="new_unit_symbol"></div>'
+        + '<div class="form-field"><label>Base Unit (for a derived unit like "Dozen")</label>'
         + '<select id="new_unit_base"><option value="">— This is a base unit —</option>' + optionsFor_(baseUnits, 'unitId', 'unitName') + '</select></div>'
         + '<div class="form-field"><label>Conversion Factor (if derived)</label><input type="number" id="new_unit_factor" step="0.01"></div>';
     }
 
-    function catalogSimpleRows_(list, idKey, labelKey) {
-      if (!list || list.length === 0) return '<div class="placeholder">None yet</div>';
+    function catalogSimpleRows_(list, idKey, labelKey, canManage) {
+      if (!list || list.length === 0) return emptyState('None yet');
       var html = '<table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody>';
-      list.forEach(function (item) {
-        html += '<tr><td>' + item[labelKey] + '</td><td><span class="status-pill status-' + item.status + '">' + item.status + '</span></td></tr>';
-      });
+      list.forEach(function (item) { html += '<tr><td>' + item[labelKey] + '</td><td>' + statusBadge(item.status) + '</td></tr>'; });
       return html + '</tbody></table>';
     }
 
     function catalogCategoryRows_() {
-      if (catalogData.categories.length === 0) return '<div class="placeholder">None yet</div>';
+      if (catalogData.categories.length === 0) return emptyState('None yet');
       var html = '<table><thead><tr><th>Name</th><th>Parent</th><th>Status</th></tr></thead><tbody>';
       catalogData.categories.forEach(function (c) {
         var parent = catalogData.categories.find(function (p) { return p.categoryId === c.parentCategoryId; });
-        html += '<tr><td>' + c.categoryName + '</td><td>' + (parent ? parent.categoryName : '—') + '</td><td><span class="status-pill status-' + c.status + '">' + c.status + '</span></td></tr>';
+        html += '<tr><td>' + c.categoryName + '</td><td>' + (parent ? parent.categoryName : '—') + '</td><td>' + statusBadge(c.status) + '</td></tr>';
       });
       return html + '</tbody></table>';
     }
 
     function catalogUnitRows_() {
-      if (catalogData.units.length === 0) return '<div class="placeholder">None yet</div>';
+      if (catalogData.units.length === 0) return emptyState('None yet');
       var html = '<table><thead><tr><th>Name</th><th>Symbol</th><th>Base Unit</th><th>Factor</th><th>Status</th></tr></thead><tbody>';
       catalogData.units.forEach(function (u) {
         var base = catalogData.units.find(function (b) { return b.unitId === u.baseUnitId; });
-        html += '<tr><td>' + u.unitName + '</td><td>' + (u.unitSymbol || '—') + '</td><td>' + (base ? base.unitName : '—') + '</td><td>' + (u.conversionFactor || '—') + '</td><td><span class="status-pill status-' + u.status + '">' + u.status + '</span></td></tr>';
+        html += '<tr><td>' + u.unitName + '</td><td>' + (u.unitSymbol || '—') + '</td><td>' + (base ? base.unitName : '—') + '</td><td>' + (u.conversionFactor || '—') + '</td><td>' + statusBadge(u.status) + '</td></tr>';
       });
       return html + '</tbody></table>';
     }
@@ -831,89 +821,86 @@
         btn.onclick = function () { document.getElementById('form_' + btn.getAttribute('data-cancel-form')).style.display = 'none'; };
       });
       container.querySelectorAll('[data-submit-form]').forEach(function (btn) {
-        btn.onclick = function () { submitCatalogForm_(btn.getAttribute('data-submit-form'), container); };
+        btn.onclick = function () { withButtonBusy(btn, 'Creating…', function (restore) { submitCatalogForm_(btn.getAttribute('data-submit-form'), container, restore); }); };
       });
     }
 
-    function submitCatalogForm_(key, container) {
+    function submitCatalogForm_(key, container, restore) {
       var errorEl = document.getElementById('error_' + key);
       errorEl.innerText = '';
-      var action, payload;
+      var action, payload, label;
 
       if (key === 'category') {
         var name = document.getElementById('new_category_name').value.trim();
-        if (!name) { errorEl.innerText = 'Category name is required.'; return; }
-        action = 'createCategory';
+        if (!name) { errorEl.innerText = 'Category name is required.'; restore(); return; }
+        action = 'createCategory'; label = 'Category';
         payload = { businessId: currentBusinessId, categoryName: name, parentCategoryId: document.getElementById('new_category_parent').value || undefined };
       } else if (key === 'brand') {
         var bname = document.getElementById('new_brand_name').value.trim();
-        if (!bname) { errorEl.innerText = 'Brand name is required.'; return; }
-        action = 'createBrand';
+        if (!bname) { errorEl.innerText = 'Brand name is required.'; restore(); return; }
+        action = 'createBrand'; label = 'Brand';
         payload = { businessId: currentBusinessId, brandName: bname };
       } else if (key === 'productType') {
         var tname = document.getElementById('new_productType_name').value.trim();
-        if (!tname) { errorEl.innerText = 'Type name is required.'; return; }
-        action = 'createProductType';
+        if (!tname) { errorEl.innerText = 'Type name is required.'; restore(); return; }
+        action = 'createProductType'; label = 'Product Type';
         payload = { businessId: currentBusinessId, typeName: tname };
       } else if (key === 'unit') {
         var uname = document.getElementById('new_unit_name').value.trim();
-        if (!uname) { errorEl.innerText = 'Unit name is required.'; return; }
+        if (!uname) { errorEl.innerText = 'Unit name is required.'; restore(); return; }
         var baseUnitId = document.getElementById('new_unit_base').value || undefined;
         var factorRaw = document.getElementById('new_unit_factor').value;
-        if (baseUnitId && !factorRaw) { errorEl.innerText = 'Conversion Factor is required when a Base Unit is selected.'; return; }
-        action = 'createUnit';
-        payload = {
-          businessId: currentBusinessId, unitName: uname, unitSymbol: document.getElementById('new_unit_symbol').value.trim() || undefined,
-          baseUnitId: baseUnitId, conversionFactor: factorRaw ? parseFloat(factorRaw) : undefined
-        };
+        if (baseUnitId && !factorRaw) { errorEl.innerText = 'Conversion Factor is required when a Base Unit is selected.'; restore(); return; }
+        action = 'createUnit'; label = 'Unit';
+        payload = { businessId: currentBusinessId, unitName: uname, unitSymbol: document.getElementById('new_unit_symbol').value.trim() || undefined, baseUnitId: baseUnitId, conversionFactor: factorRaw ? parseFloat(factorRaw) : undefined };
       }
 
       callWithSession(action, payload).then(function (result) {
-        if (!result.success) { errorEl.innerText = result.message; return; }
-        renderCatalog(container, true); // force refresh since data changed
-      }).catch(function (err) {
-        errorEl.innerText = 'Network/server error: ' + err;
-      });
+        restore();
+        if (!result.success) { showFormError(errorEl, result); return; }
+        showToast(label + ' created successfully.', 'success');
+        renderCatalog(container, true);
+      }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
     }
 
     // ============================================================
-    // Customers — CustomerType/PaymentTerms are FIXED system codes
-    // (never business-created), so these render as hardcoded dropdowns,
-    // not fetched Master Data — matching the backend's own rule that
-    // these catalogs are never business-editable.
+    // Customers
     // ============================================================
     var CUSTOMER_TYPES = ['RETAIL', 'WHOLESALE', 'INDIVIDUAL', 'CORPORATE', 'OTHER'];
     var PAYMENT_TERMS = ['COD', 'NET15', 'NET30', 'NET60'];
     var customersPageData = [];
+    var customersSearchTerm = '';
 
     function renderCustomers(container, forceRefresh) {
       var cached = getCache('customers');
       if (cached && !forceRefresh) { customersPageData = cached; drawCustomersScreen(container); return; }
-      container.innerHTML = '<div class="placeholder">Loading customers…</div>';
+      container.innerHTML = loadingState('Loading customers…');
       callWithSession('listCustomers', { businessId: currentBusinessId }).then(function (result) {
-        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        if (!result.success) { container.innerHTML = errorState(humanizeError(result)); return; }
         customersPageData = result.data;
         setCache('customers', customersPageData);
         drawCustomersScreen(container);
-      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+      }).catch(function (err) { container.innerHTML = errorState('Network error: ' + err); });
     }
 
     function drawCustomersScreen(container) {
       var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
-      var html = '<div class="header-row"><div></div><div>' + refreshButton_('customers');
+      var visible = customersPageData.filter(function (c) { return !customersSearchTerm || c.customerName.toLowerCase().indexOf(customersSearchTerm.toLowerCase()) !== -1 || (c.phone || '').indexOf(customersSearchTerm) !== -1; });
+
+      var html = '<div class="header-row"><input type="text" class="search-box" id="customersSearch" placeholder="Search by name or phone…" value="' + customersSearchTerm.replace(/"/g, '') + '"><div>' + refreshButton_('customers');
       if (canManage) html += ' <button class="btn" id="toggleCreateCustomerForm">+ New Customer</button>';
       html += '</div></div>';
 
       if (canManage) {
         html += '<div class="form-panel" id="createCustomerForm" style="display:none;">'
           + '<div class="form-row">'
-          + '<div class="form-field"><label>Customer Name</label><input type="text" id="newCustomerName"></div>'
-          + '<div class="form-field"><label>Customer Type</label><select id="newCustomerType">' + CUSTOMER_TYPES.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
-          + '<div class="form-field"><label>Payment Terms (optional)</label><select id="newCustomerTerms"><option value="">—</option>' + PAYMENT_TERMS.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '<div class="form-field"><label>Customer Name <span class="required">*</span></label><input type="text" id="newCustomerName"></div>'
+          + '<div class="form-field"><label>Customer Type <span class="required">*</span></label><select id="newCustomerType">' + CUSTOMER_TYPES.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '<div class="form-field"><label>Payment Terms</label><select id="newCustomerTerms"><option value="">—</option>' + PAYMENT_TERMS.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
           + '</div><div class="form-row">'
-          + '<div class="form-field"><label>Phone (optional)</label><input type="text" id="newCustomerPhone"></div>'
-          + '<div class="form-field"><label>Email (optional)</label><input type="text" id="newCustomerEmail"></div>'
-          + '<div class="form-field"><label>Credit Limit (optional)</label><input type="number" id="newCustomerCreditLimit" step="0.01"></div>'
+          + '<div class="form-field"><label>Phone</label><input type="text" id="newCustomerPhone"></div>'
+          + '<div class="form-field"><label>Email</label><input type="text" id="newCustomerEmail"></div>'
+          + '<div class="form-field"><label>Credit Limit</label><input type="number" id="newCustomerCreditLimit" step="0.01"></div>'
           + '</div>'
           + '<div class="form-actions"><button class="btn" id="submitCreateCustomer">Create Customer</button>'
           + '<button class="btn-secondary" id="cancelCreateCustomer">Cancel</button></div>'
@@ -921,12 +908,13 @@
       }
 
       if (customersPageData.length === 0) {
-        html += '<div class="placeholder">No customers yet.' + (canManage ? ' Click "+ New Customer" to add one.' : '') + '</div>';
+        html += emptyState('No customers yet.', canManage ? '<button class="btn" id="emptyAddCustomer">+ Add Customer</button>' : '');
+      } else if (visible.length === 0) {
+        html += emptyState('No customers match your search. Try another name or phone number.');
       } else {
         html += '<table><thead><tr><th>Name</th><th>Type</th><th>Payment Terms</th><th>Phone</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
-        customersPageData.forEach(function (c) {
-          html += '<tr><td>' + c.customerName + '</td><td>' + c.customerType + '</td><td>' + (c.paymentTerms || '—') + '</td><td>' + (c.phone || '—') + '</td>'
-            + '<td><span class="status-pill status-' + c.status + '">' + c.status + '</span></td>';
+        visible.forEach(function (c) {
+          html += '<tr><td>' + c.customerName + '</td><td>' + c.customerType + '</td><td>' + (c.paymentTerms || '—') + '</td><td>' + (c.phone || '—') + '</td><td>' + statusBadge(c.status) + '</td>';
           if (canManage) html += '<td>' + entityStatusButtons_(c, 'customerId', 'setCustomerStatus', 'customers') + '</td>';
           html += '</tr>';
         });
@@ -934,35 +922,50 @@
       }
 
       container.innerHTML = html;
+
+      var searchInput = document.getElementById('customersSearch');
+      if (searchInput) searchInput.oninput = debounce(function () { customersSearchTerm = searchInput.value; drawCustomersScreen(container); var el = document.getElementById('customersSearch'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 200);
+
       var refreshBtn = document.getElementById('refreshBtn_customers');
       if (refreshBtn) refreshBtn.onclick = function () { renderCustomers(container, true); };
 
       if (canManage) {
         var formEl = document.getElementById('createCustomerForm');
-        document.getElementById('toggleCreateCustomerForm').onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var openForm = function () { formEl.style.display = 'block'; };
+        var toggleBtn = document.getElementById('toggleCreateCustomerForm');
+        if (toggleBtn) toggleBtn.onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var emptyBtn = document.getElementById('emptyAddCustomer');
+        if (emptyBtn) emptyBtn.onclick = openForm;
         document.getElementById('cancelCreateCustomer').onclick = function () { formEl.style.display = 'none'; };
-        document.getElementById('submitCreateCustomer').onclick = function () {
-          var errorEl = document.getElementById('createCustomerError');
-          errorEl.innerText = '';
-          var name = document.getElementById('newCustomerName').value.trim();
-          if (!name) { errorEl.innerText = 'Customer name is required.'; return; }
-          var input = {
-            customerName: name, customerType: document.getElementById('newCustomerType').value,
-            paymentTerms: document.getElementById('newCustomerTerms').value || undefined,
-            phone: document.getElementById('newCustomerPhone').value.trim() || undefined,
-            email: document.getElementById('newCustomerEmail').value.trim() || undefined,
-            creditLimit: document.getElementById('newCustomerCreditLimit').value ? parseFloat(document.getElementById('newCustomerCreditLimit').value) : undefined
-          };
-          callWithSession('createCustomer', { businessId: currentBusinessId, input: input }).then(function (result) {
-            if (!result.success) { errorEl.innerText = result.message; return; }
-            renderCustomers(container, true);
-          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        var submitBtn = document.getElementById('submitCreateCustomer');
+        submitBtn.onclick = function () {
+          withButtonBusy(submitBtn, 'Creating…', function (restore) {
+            var errorEl = document.getElementById('createCustomerError');
+            errorEl.innerText = '';
+            var name = document.getElementById('newCustomerName').value.trim();
+            if (!name) { errorEl.innerText = 'Customer name is required.'; restore(); return; }
+            var type = document.getElementById('newCustomerType').value;
+            var input = {
+              customerName: name, customerType: type,
+              paymentTerms: document.getElementById('newCustomerTerms').value || undefined,
+              phone: document.getElementById('newCustomerPhone').value.trim() || undefined,
+              email: document.getElementById('newCustomerEmail').value.trim() || undefined,
+              creditLimit: document.getElementById('newCustomerCreditLimit').value ? parseFloat(document.getElementById('newCustomerCreditLimit').value) : undefined
+            };
+            callWithSession('createCustomer', { businessId: currentBusinessId, input: input }).then(function (result) {
+              restore();
+              if (!result.success) { showFormError(errorEl, result); return; }
+              showToast('Customer created successfully.\n' + name + ' — ' + type, 'success');
+              invalidateCache('customers');
+              renderCustomers(container, true);
+            }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
+          });
         };
         wireEntityStatusButtons_(container);
       }
     }
 
-    /** Shared status-action buttons for any simple entity with an Active/Inactive/Archived-style status. */
+    /** Shared status-action buttons + wiring for Customers/Vendors/Locations. */
     function entityStatusButtons_(entity, idField, action, viewName) {
       var buttons = '';
       if (entity.status !== 'Active') buttons += '<button class="btn-small" data-entity-status="Active" data-entity-id="' + entity[idField] + '" data-entity-action="' + action + '" data-entity-view="' + viewName + '">Activate</button> ';
@@ -975,14 +978,22 @@
         btn.onclick = function () {
           var action = btn.getAttribute('data-entity-action');
           var view = btn.getAttribute('data-entity-view');
+          var newStatus = btn.getAttribute('data-entity-status');
           var idKeyMap = { customers: 'customerId', vendors: 'vendorId', locations: 'locationId' };
-          var payload = { businessId: currentBusinessId, status: btn.getAttribute('data-entity-status') };
-          payload[idKeyMap[view]] = btn.getAttribute('data-entity-id');
-          callWithSession(action, payload).then(function (result) {
-            if (!result.success) { alert(result.message); return; }
-            if (view === 'customers') renderCustomers(container, true);
-            if (view === 'vendors') renderVendors(container, true);
-            if (view === 'locations') renderLocations(container, true);
+          showConfirm('Change status to ' + newStatus + '?', 'This will update visibility and availability for future transactions.', function () {
+            withButtonBusy(btn, '…', function (restore) {
+              var payload = { businessId: currentBusinessId, status: newStatus };
+              payload[idKeyMap[view]] = btn.getAttribute('data-entity-id');
+              callWithSession(action, payload).then(function (result) {
+                restore();
+                if (!result.success) { handleApiError(result); return; }
+                showToast('Status updated.', 'success');
+                invalidateCache(view);
+                if (view === 'customers') renderCustomers(container, true);
+                if (view === 'vendors') renderVendors(container, true);
+                if (view === 'locations') renderLocations(container, true);
+              });
+            });
           });
         };
       });
@@ -992,33 +1003,36 @@
     // Vendors
     // ============================================================
     var vendorsPageData = [];
+    var vendorsSearchTerm = '';
 
     function renderVendors(container, forceRefresh) {
       var cached = getCache('vendors');
       if (cached && !forceRefresh) { vendorsPageData = cached; drawVendorsScreen(container); return; }
-      container.innerHTML = '<div class="placeholder">Loading vendors…</div>';
+      container.innerHTML = loadingState('Loading vendors…');
       callWithSession('listVendors', { businessId: currentBusinessId }).then(function (result) {
-        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        if (!result.success) { container.innerHTML = errorState(humanizeError(result)); return; }
         vendorsPageData = result.data;
         setCache('vendors', vendorsPageData);
         drawVendorsScreen(container);
-      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+      }).catch(function (err) { container.innerHTML = errorState('Network error: ' + err); });
     }
 
     function drawVendorsScreen(container) {
       var canManage = currentContext.permissions.indexOf('MASTER_DATA_MANAGE') !== -1;
-      var html = '<div class="header-row"><div></div><div>' + refreshButton_('vendors');
+      var visible = vendorsPageData.filter(function (v) { return !vendorsSearchTerm || v.vendorName.toLowerCase().indexOf(vendorsSearchTerm.toLowerCase()) !== -1; });
+
+      var html = '<div class="header-row"><input type="text" class="search-box" id="vendorsSearch" placeholder="Search vendors…" value="' + vendorsSearchTerm.replace(/"/g, '') + '"><div>' + refreshButton_('vendors');
       if (canManage) html += ' <button class="btn" id="toggleCreateVendorForm">+ New Vendor</button>';
       html += '</div></div>';
 
       if (canManage) {
         html += '<div class="form-panel" id="createVendorForm" style="display:none;">'
           + '<div class="form-row">'
-          + '<div class="form-field"><label>Vendor Name</label><input type="text" id="newVendorName"></div>'
-          + '<div class="form-field"><label>Payment Terms (optional)</label><select id="newVendorTerms"><option value="">—</option>' + PAYMENT_TERMS.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '<div class="form-field"><label>Vendor Name <span class="required">*</span></label><input type="text" id="newVendorName"></div>'
+          + '<div class="form-field"><label>Payment Terms</label><select id="newVendorTerms"><option value="">—</option>' + PAYMENT_TERMS.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
           + '</div><div class="form-row">'
-          + '<div class="form-field"><label>Phone (optional)</label><input type="text" id="newVendorPhone"></div>'
-          + '<div class="form-field"><label>Email (optional)</label><input type="text" id="newVendorEmail"></div>'
+          + '<div class="form-field"><label>Phone</label><input type="text" id="newVendorPhone"></div>'
+          + '<div class="form-field"><label>Email</label><input type="text" id="newVendorEmail"></div>'
           + '</div>'
           + '<div class="form-actions"><button class="btn" id="submitCreateVendor">Create Vendor</button>'
           + '<button class="btn-secondary" id="cancelCreateVendor">Cancel</button></div>'
@@ -1026,12 +1040,13 @@
       }
 
       if (vendorsPageData.length === 0) {
-        html += '<div class="placeholder">No vendors yet.' + (canManage ? ' Click "+ New Vendor" to add one.' : '') + '</div>';
+        html += emptyState('No vendors yet.', canManage ? '<button class="btn" id="emptyAddVendor">+ Add Vendor</button>' : '');
+      } else if (visible.length === 0) {
+        html += emptyState('No vendors match your search. Try another name.');
       } else {
         html += '<table><thead><tr><th>Name</th><th>Payment Terms</th><th>Phone</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
-        vendorsPageData.forEach(function (v) {
-          html += '<tr><td>' + v.vendorName + '</td><td>' + (v.paymentTerms || '—') + '</td><td>' + (v.phone || '—') + '</td>'
-            + '<td><span class="status-pill status-' + v.status + '">' + v.status + '</span></td>';
+        visible.forEach(function (v) {
+          html += '<tr><td>' + v.vendorName + '</td><td>' + (v.paymentTerms || '—') + '</td><td>' + (v.phone || '—') + '</td><td>' + statusBadge(v.status) + '</td>';
           if (canManage) html += '<td>' + entityStatusButtons_(v, 'vendorId', 'setVendorStatus', 'vendors') + '</td>';
           html += '</tr>';
         });
@@ -1039,34 +1054,48 @@
       }
 
       container.innerHTML = html;
+
+      var searchInput = document.getElementById('vendorsSearch');
+      if (searchInput) searchInput.oninput = debounce(function () { vendorsSearchTerm = searchInput.value; drawVendorsScreen(container); var el = document.getElementById('vendorsSearch'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 200);
+
       var refreshBtn = document.getElementById('refreshBtn_vendors');
       if (refreshBtn) refreshBtn.onclick = function () { renderVendors(container, true); };
 
       if (canManage) {
         var formEl = document.getElementById('createVendorForm');
-        document.getElementById('toggleCreateVendorForm').onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var openForm = function () { formEl.style.display = 'block'; };
+        var toggleBtn = document.getElementById('toggleCreateVendorForm');
+        if (toggleBtn) toggleBtn.onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var emptyBtn = document.getElementById('emptyAddVendor');
+        if (emptyBtn) emptyBtn.onclick = openForm;
         document.getElementById('cancelCreateVendor').onclick = function () { formEl.style.display = 'none'; };
-        document.getElementById('submitCreateVendor').onclick = function () {
-          var errorEl = document.getElementById('createVendorError');
-          errorEl.innerText = '';
-          var name = document.getElementById('newVendorName').value.trim();
-          if (!name) { errorEl.innerText = 'Vendor name is required.'; return; }
-          var input = {
-            vendorName: name, paymentTerms: document.getElementById('newVendorTerms').value || undefined,
-            phone: document.getElementById('newVendorPhone').value.trim() || undefined,
-            email: document.getElementById('newVendorEmail').value.trim() || undefined
-          };
-          callWithSession('createVendor', { businessId: currentBusinessId, input: input }).then(function (result) {
-            if (!result.success) { errorEl.innerText = result.message; return; }
-            renderVendors(container, true);
-          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        var submitBtn = document.getElementById('submitCreateVendor');
+        submitBtn.onclick = function () {
+          withButtonBusy(submitBtn, 'Creating…', function (restore) {
+            var errorEl = document.getElementById('createVendorError');
+            errorEl.innerText = '';
+            var name = document.getElementById('newVendorName').value.trim();
+            if (!name) { errorEl.innerText = 'Vendor name is required.'; restore(); return; }
+            var input = {
+              vendorName: name, paymentTerms: document.getElementById('newVendorTerms').value || undefined,
+              phone: document.getElementById('newVendorPhone').value.trim() || undefined,
+              email: document.getElementById('newVendorEmail').value.trim() || undefined
+            };
+            callWithSession('createVendor', { businessId: currentBusinessId, input: input }).then(function (result) {
+              restore();
+              if (!result.success) { showFormError(errorEl, result); return; }
+              showToast('Vendor created successfully.\n' + name, 'success');
+              invalidateCache('vendors');
+              renderVendors(container, true);
+            }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
+          });
         };
         wireEntityStatusButtons_(container);
       }
     }
 
     // ============================================================
-    // Locations — LocationType is a fixed enum (Warehouse/Store/StockRoom)
+    // Locations
     // ============================================================
     var LOCATION_TYPES = ['Store', 'Warehouse', 'StockRoom'];
     var locationsPageData = [];
@@ -1074,13 +1103,13 @@
     function renderLocations(container, forceRefresh) {
       var cached = getCache('locations');
       if (cached && !forceRefresh) { locationsPageData = cached; drawLocationsScreen(container); return; }
-      container.innerHTML = '<div class="placeholder">Loading locations…</div>';
+      container.innerHTML = loadingState('Loading locations…');
       callWithSession('listLocations', { businessId: currentBusinessId }).then(function (result) {
-        if (!result.success) { container.innerHTML = '<div class="placeholder">' + result.message + '</div>'; return; }
+        if (!result.success) { container.innerHTML = errorState(humanizeError(result)); return; }
         locationsPageData = result.data;
         setCache('locations', locationsPageData);
         drawLocationsScreen(container);
-      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+      }).catch(function (err) { container.innerHTML = errorState('Network error: ' + err); });
     }
 
     function drawLocationsScreen(container) {
@@ -1091,7 +1120,7 @@
 
       if (canManage) {
         html += '<div class="form-panel" id="createLocationForm" style="display:none;"><div class="form-row">'
-          + '<div class="form-field"><label>Location Name</label><input type="text" id="newLocationName"></div>'
+          + '<div class="form-field"><label>Location Name <span class="required">*</span></label><input type="text" id="newLocationName"></div>'
           + '<div class="form-field"><label>Type</label><select id="newLocationType">' + LOCATION_TYPES.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
           + '</div>'
           + '<div class="form-actions"><button class="btn" id="submitCreateLocation">Create Location</button>'
@@ -1100,12 +1129,11 @@
       }
 
       if (locationsPageData.length === 0) {
-        html += '<div class="placeholder">No locations yet.' + (canManage ? ' Click "+ New Location" to add one — you\'ll need at least one before Purchases/Sales/Inventory work.' : '') + '</div>';
+        html += emptyState('No locations yet. You\'ll need at least one before Purchases/Sales/Inventory work.', canManage ? '<button class="btn" id="emptyAddLocation">+ Add Location</button>' : '');
       } else {
         html += '<table><thead><tr><th>Name</th><th>Type</th><th>Status</th>' + (canManage ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
         locationsPageData.forEach(function (l) {
-          html += '<tr><td>' + l.locationName + '</td><td>' + l.locationType + '</td>'
-            + '<td><span class="status-pill status-' + l.status + '">' + l.status + '</span></td>';
+          html += '<tr><td>' + l.locationName + '</td><td>' + l.locationType + '</td><td>' + statusBadge(l.status) + '</td>';
           if (canManage) html += '<td>' + entityStatusButtons_(l, 'locationId', 'setLocationStatus', 'locations') + '</td>';
           html += '</tr>';
         });
@@ -1118,47 +1146,55 @@
 
       if (canManage) {
         var formEl = document.getElementById('createLocationForm');
-        document.getElementById('toggleCreateLocationForm').onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var openForm = function () { formEl.style.display = 'block'; };
+        var toggleBtn = document.getElementById('toggleCreateLocationForm');
+        if (toggleBtn) toggleBtn.onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var emptyBtn = document.getElementById('emptyAddLocation');
+        if (emptyBtn) emptyBtn.onclick = openForm;
         document.getElementById('cancelCreateLocation').onclick = function () { formEl.style.display = 'none'; };
-        document.getElementById('submitCreateLocation').onclick = function () {
-          var errorEl = document.getElementById('createLocationError');
-          errorEl.innerText = '';
-          var name = document.getElementById('newLocationName').value.trim();
-          if (!name) { errorEl.innerText = 'Location name is required.'; return; }
-          callWithSession('createLocation', { businessId: currentBusinessId, locationName: name, locationType: document.getElementById('newLocationType').value }).then(function (result) {
-            if (!result.success) { errorEl.innerText = result.message; return; }
-            renderLocations(container, true);
-          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        var submitBtn = document.getElementById('submitCreateLocation');
+        submitBtn.onclick = function () {
+          withButtonBusy(submitBtn, 'Creating…', function (restore) {
+            var errorEl = document.getElementById('createLocationError');
+            errorEl.innerText = '';
+            var name = document.getElementById('newLocationName').value.trim();
+            if (!name) { errorEl.innerText = 'Location name is required.'; restore(); return; }
+            callWithSession('createLocation', { businessId: currentBusinessId, locationName: name, locationType: document.getElementById('newLocationType').value }).then(function (result) {
+              restore();
+              if (!result.success) { showFormError(errorEl, result); return; }
+              showToast('Location created successfully.\n' + name, 'success');
+              invalidateCache('locations');
+              renderLocations(container, true);
+            }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
+          });
         };
         wireEntityStatusButtons_(container);
       }
     }
 
     // ============================================================
-    // Purchases — the biggest workflow: DRAFT -> lines -> additional
-    // costs -> post -> receive into inventory -> payments. List view
-    // + a separate detail view for one purchase's full lifecycle.
+    // Purchases
     // ============================================================
     var PAYMENT_METHODS = ['CASH', 'BANK', 'CARD', 'MOBILE_PAYMENT', 'CHEQUE', 'OTHER'];
     var ADDITIONAL_COST_TYPES = ['Freight', 'Customs', 'Loading', 'Insurance', 'Other'];
     var purchasesPageData = [];
-    var purchasableItemsCache = null; // { businessId: [{variantId, label, unitId}] }
+    var purchasableItemsCache = null;
 
     function renderPurchasesList(container, forceRefresh) {
       var cached = getCache('purchases');
       if (cached && !forceRefresh) { purchasesPageData = cached; drawPurchasesListScreen(container); return; }
-      container.innerHTML = '<div class="placeholder">Loading purchases…</div>';
+      container.innerHTML = loadingState('Loading purchases…');
       Promise.all([
         callWithSession('listPurchases', { businessId: currentBusinessId }),
         callWithSession('listVendors', { businessId: currentBusinessId }),
         callWithSession('listLocations', { businessId: currentBusinessId })
       ]).then(function (results) {
         var failed = results.find(function (r) { return !r.success; });
-        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
+        if (failed) { container.innerHTML = errorState(humanizeError(failed)); return; }
         purchasesPageData = { purchases: results[0].data, vendors: results[1].data, locations: results[2].data };
         setCache('purchases', purchasesPageData);
         drawPurchasesListScreen(container);
-      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+      }).catch(function (err) { container.innerHTML = errorState('Network error: ' + err); });
     }
 
     function drawPurchasesListScreen(container) {
@@ -1175,8 +1211,8 @@
           html += '<p style="color:#b5730a">You need at least one Vendor and one Location before starting a Purchase.</p>';
         } else {
           html += '<div class="form-row">'
-            + '<div class="form-field"><label>Vendor</label><select id="newPurchaseVendor">' + optionsFor_(d.vendors, 'vendorId', 'vendorName') + '</select></div>'
-            + '<div class="form-field"><label>Location</label><select id="newPurchaseLocation">' + optionsFor_(d.locations, 'locationId', 'locationName') + '</select></div>'
+            + '<div class="form-field"><label>Vendor <span class="required">*</span></label><select id="newPurchaseVendor">' + optionsFor_(d.vendors, 'vendorId', 'vendorName') + '</select></div>'
+            + '<div class="form-field"><label>Location <span class="required">*</span></label><select id="newPurchaseLocation">' + optionsFor_(d.locations, 'locationId', 'locationName') + '</select></div>'
             + '</div><div class="form-actions"><button class="btn" id="submitCreatePurchase">Start Draft</button>'
             + '<button class="btn-secondary" id="cancelCreatePurchase">Cancel</button></div>'
             + '<div class="form-error" id="createPurchaseError"></div>';
@@ -1185,15 +1221,15 @@
       }
 
       if (d.purchases.length === 0) {
-        html += '<div class="placeholder">No purchases yet.</div>';
+        html += emptyState('No purchases yet.', canManage ? '<button class="btn" id="emptyAddPurchase">+ New Purchase</button>' : '');
       } else {
         html += '<table><thead><tr><th>Vendor</th><th>Location</th><th>Status</th><th>Grand Total</th><th></th></tr></thead><tbody>';
         d.purchases.slice().reverse().forEach(function (p) {
           var vendor = d.vendors.find(function (v) { return v.vendorId === p.vendorId; });
           var loc = d.locations.find(function (l) { return l.locationId === p.locationId; });
           html += '<tr><td>' + (vendor ? vendor.vendorName : p.vendorId) + '</td><td>' + (loc ? loc.locationName : p.locationId) + '</td>'
-            + '<td><span class="status-pill status-' + (p.status === 'POSTED' || p.status === 'PAID' ? 'Active' : (p.status === 'CANCELLED' ? 'Archived' : 'Inactive')) + '">' + p.status + '</span></td>'
-            + '<td>' + fmt(p.grandTotal) + '</td>'
+            + '<td>' + statusBadge(p.status) + '</td>'
+            + '<td>' + money(p.grandTotal) + '</td>'
             + '<td><button class="btn-small" data-open-purchase="' + p.purchaseId + '">Open</button></td></tr>';
         });
         html += '</tbody></table>';
@@ -1209,40 +1245,41 @@
 
       if (canManage) {
         var formEl = document.getElementById('createPurchaseForm');
+        var openForm = function () { formEl.style.display = 'block'; };
         var toggleBtn = document.getElementById('toggleCreatePurchaseForm');
         if (toggleBtn) toggleBtn.onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var emptyBtn = document.getElementById('emptyAddPurchase');
+        if (emptyBtn) emptyBtn.onclick = openForm;
         var cancelBtn = document.getElementById('cancelCreatePurchase');
         if (cancelBtn) cancelBtn.onclick = function () { formEl.style.display = 'none'; };
         var submitBtn = document.getElementById('submitCreatePurchase');
         if (submitBtn) submitBtn.onclick = function () {
-          var errorEl = document.getElementById('createPurchaseError');
-          errorEl.innerText = '';
-          callWithSession('createPurchaseDraft', {
-            businessId: currentBusinessId,
-            vendorId: document.getElementById('newPurchaseVendor').value,
-            locationId: document.getElementById('newPurchaseLocation').value
-          }).then(function (result) {
-            if (!result.success) { errorEl.innerText = result.message; return; }
-            if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
-            renderPurchaseDetail(container, result.data.purchaseId);
-          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+          withButtonBusy(submitBtn, 'Starting…', function (restore) {
+            var errorEl = document.getElementById('createPurchaseError');
+            errorEl.innerText = '';
+            callWithSession('createPurchaseDraft', {
+              businessId: currentBusinessId,
+              vendorId: document.getElementById('newPurchaseVendor').value,
+              locationId: document.getElementById('newPurchaseLocation').value
+            }).then(function (result) {
+              restore();
+              if (!result.success) { showFormError(errorEl, result); return; }
+              invalidateCache('purchases');
+              renderPurchaseDetail(container, result.data.purchaseId);
+            }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
+          });
         };
       }
     }
 
-    /** Flat list of {variantId, label, unitId} across all products — fetched once per business, cached. See scaling note in the code comment above. */
     function getPurchasableItems() {
-      if (purchasableItemsCache && purchasableItemsCache.businessId === currentBusinessId) {
-        return Promise.resolve(purchasableItemsCache.items);
-      }
+      if (purchasableItemsCache && purchasableItemsCache.businessId === currentBusinessId) return Promise.resolve(purchasableItemsCache.items);
       return callWithSession('listProducts', { businessId: currentBusinessId }).then(function (productsResult) {
         if (!productsResult.success) return [];
         var products = productsResult.data;
         return Promise.all(products.map(function (p) {
           return callWithSession('listProductVariants', { businessId: currentBusinessId, productId: p.productId }).then(function (r) {
-            return (r.success ? r.data : []).map(function (v) {
-              return { variantId: v.variantId, label: p.productName + (v.variantName && v.variantName !== 'Default' ? ' — ' + v.variantName : ''), unitId: v.unitId };
-            });
+            return (r.success ? r.data : []).map(function (v) { return { variantId: v.variantId, label: p.productName + (v.variantName && v.variantName !== 'Default' ? ' — ' + v.variantName : ''), unitId: v.unitId }; });
           });
         })).then(function (perProduct) {
           var items = [].concat.apply([], perProduct);
@@ -1253,7 +1290,7 @@
     }
 
     function renderPurchaseDetail(container, purchaseId) {
-      container.innerHTML = '<div class="placeholder">Loading purchase…</div>';
+      container.innerHTML = loadingState('Loading purchase…');
       Promise.all([
         callWithSession('getPurchase', { businessId: currentBusinessId, purchaseId: purchaseId }),
         callWithSession('listPurchaseLines', { businessId: currentBusinessId, purchaseId: purchaseId }),
@@ -1264,88 +1301,79 @@
       ]).then(function (results) {
         var apiResults = results.slice(0, 5);
         var failed = apiResults.find(function (r) { return !r.success; });
-        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
-        drawPurchaseDetailScreen(container, {
-          purchase: apiResults[0].data, lines: apiResults[1].data, additionalCosts: apiResults[2].data,
-          payments: apiResults[3].data, units: apiResults[4].data, purchasableItems: results[5]
-        });
-      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+        if (failed) { container.innerHTML = errorState(humanizeError(failed)); return; }
+        drawPurchaseDetailScreen(container, { purchase: apiResults[0].data, lines: apiResults[1].data, additionalCosts: apiResults[2].data, payments: apiResults[3].data, units: apiResults[4].data, purchasableItems: results[5] });
+      }).catch(function (err) { container.innerHTML = errorState('Network error: ' + err); });
     }
 
     function drawPurchaseDetailScreen(container, data) {
       var canManage = currentContext.permissions.indexOf('PURCHASE_MANAGE') !== -1;
       var p = data.purchase;
-      var html = '<div class="header-row"><button class="btn-secondary" id="backToPurchasesList">← Back to Purchases</button>'
-        + '<span class="status-pill status-' + (p.status === 'POSTED' || p.status === 'PAID' ? 'Active' : (p.status === 'CANCELLED' ? 'Archived' : 'Inactive')) + '">' + p.status + '</span></div>';
+      var html = '<div class="header-row"><button class="btn-secondary" id="backToPurchasesList">← Back to Purchases</button>' + statusBadge(p.status) + '</div>';
 
       html += '<div class="card-grid">'
-        + card('Subtotal', fmt(p.subtotal)) + card('Additional Cost', fmt(p.additionalCostTotal)) + card('Grand Total', fmt(p.grandTotal))
-        + card('Amount Paid', fmt(p.amountPaid)) + card('Amount Due', fmt(p.amountDue), p.amountDue <= 0)
+        + card('Subtotal', money(p.subtotal)) + card('Additional Cost', money(p.additionalCostTotal)) + card('Grand Total', money(p.grandTotal))
+        + card('Amount Paid', money(p.amountPaid)) + card('Amount Due', money(p.amountDue), p.amountDue <= 0)
         + '</div>';
 
-      // Lines
       html += '<div class="section-title">Lines</div>';
       if (data.lines.length === 0) {
-        html += '<div class="placeholder">No lines yet.</div>';
+        html += emptyState('No lines yet.');
       } else {
         html += '<table><thead><tr><th>Item</th><th>Qty</th><th>Vendor Unit Cost</th><th>Additional Alloc.</th><th>Landed Unit Cost</th><th>Line Total</th></tr></thead><tbody>';
         data.lines.forEach(function (l) {
           var item = data.purchasableItems.find(function (i) { return i.variantId === l.variantId; });
-          html += '<tr><td>' + (item ? item.label : l.variantId) + '</td><td>' + fmt(l.quantity) + '</td><td>' + fmt(l.actualVendorUnitCost) + '</td>'
-            + '<td>' + (l.additionalAllocatedCost != null ? fmt(l.additionalAllocatedCost) : '—') + '</td>'
-            + '<td>' + (l.landedUnitCost != null ? fmt(l.landedUnitCost) : '—') + '</td><td>' + fmt(l.lineTotal) + '</td></tr>';
+          html += '<tr><td>' + (item ? item.label : l.variantId) + '</td><td>' + fmt(l.quantity) + '</td><td>' + money(l.actualVendorUnitCost) + '</td>'
+            + '<td>' + (l.additionalAllocatedCost != null ? money(l.additionalAllocatedCost) : '—') + '</td>'
+            + '<td>' + (l.landedUnitCost != null ? money(l.landedUnitCost) : '—') + '</td><td>' + money(l.lineTotal) + '</td></tr>';
         });
         html += '</tbody></table>';
       }
 
       if (canManage && p.status === 'DRAFT') {
         html += '<div class="form-panel"><div class="section-title" style="margin-top:0">Add Line</div><div class="form-row">'
-          + '<div class="form-field"><label>Item</label><select id="addLineVariant">' + optionsFor_(data.purchasableItems, 'variantId', 'label') + '</select></div>'
-          + '<div class="form-field"><label>Quantity</label><input type="number" id="addLineQty" step="0.01"></div>'
-          + '<div class="form-field"><label>Unit</label><select id="addLineUnit">' + optionsFor_(data.units, 'unitId', 'unitName') + '</select></div>'
-          + '<div class="form-field"><label>Vendor Unit Cost</label><input type="number" id="addLineCost" step="0.01"></div>'
+          + '<div class="form-field"><label>Item <span class="required">*</span></label><select id="addLineVariant">' + optionsFor_(data.purchasableItems, 'variantId', 'label') + '</select></div>'
+          + '<div class="form-field"><label>Quantity <span class="required">*</span></label><input type="number" id="addLineQty" step="0.01"></div>'
+          + '<div class="form-field"><label>Unit <span class="required">*</span></label><select id="addLineUnit">' + optionsFor_(data.units, 'unitId', 'unitName') + '</select></div>'
+          + '<div class="form-field"><label>Vendor Unit Cost <span class="required">*</span></label><input type="number" id="addLineCost" step="0.01"></div>'
           + '</div><div class="form-actions"><button class="btn" id="submitAddLine">Add Line</button></div>'
           + '<div class="form-error" id="addLineError"></div></div>';
       }
 
-      // Additional Costs
       html += '<div class="section-title">Additional Costs</div>';
       if (data.additionalCosts.length === 0) {
-        html += '<div class="placeholder">None yet.</div>';
+        html += emptyState('None yet.');
       } else {
         html += '<table><thead><tr><th>Type</th><th>Amount</th></tr></thead><tbody>';
-        data.additionalCosts.forEach(function (c) { html += '<tr><td>' + c.costType + '</td><td>' + fmt(c.amount) + '</td></tr>'; });
+        data.additionalCosts.forEach(function (c) { html += '<tr><td>' + c.costType + '</td><td>' + money(c.amount) + '</td></tr>'; });
         html += '</tbody></table>';
       }
       if (canManage && p.status === 'DRAFT') {
         html += '<div class="form-panel"><div class="section-title" style="margin-top:0">Add Additional Cost</div><div class="form-row">'
           + '<div class="form-field"><label>Type</label><select id="addCostType">' + ADDITIONAL_COST_TYPES.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
-          + '<div class="form-field"><label>Amount</label><input type="number" id="addCostAmount" step="0.01"></div>'
+          + '<div class="form-field"><label>Amount <span class="required">*</span></label><input type="number" id="addCostAmount" step="0.01"></div>'
           + '</div><div class="form-actions"><button class="btn" id="submitAddCost">Add Cost</button></div>'
           + '<div class="form-error" id="addCostError"></div></div>';
       }
 
       if (canManage && p.status === 'DRAFT') {
-        html += '<div class="form-actions" style="margin:16px 0;"><button class="btn" id="submitPostPurchase"' + (data.lines.length === 0 ? ' disabled' : '') + '>Post Purchase</button></div>'
-          + '<div class="form-error" id="postPurchaseError"></div>';
+        html += '<div class="form-actions" style="margin:16px 0;"><button class="btn" id="submitPostPurchase"' + (data.lines.length === 0 ? ' disabled' : '') + '>Post Purchase</button></div>';
       }
       if (canManage && (p.status === 'POSTED' || p.status === 'PARTIALLY_PAID' || p.status === 'PAID')) {
-        html += '<div class="form-actions" style="margin:16px 0;"><button class="btn-secondary" id="submitReceivePurchase">Receive into Inventory</button></div>'
-          + '<div class="form-error" id="receivePurchaseError"></div>';
+        html += '<div class="form-actions" style="margin:16px 0;"><button class="btn-secondary" id="submitReceivePurchase">Receive into Inventory</button></div>';
       }
 
-      // Payments
       html += '<div class="section-title">Payments</div>';
       if (data.payments.length === 0) {
-        html += '<div class="placeholder">No payments yet.</div>';
+        html += emptyState('No payments yet.');
       } else {
         html += '<table><thead><tr><th>Amount</th><th>Method</th><th>Notes</th></tr></thead><tbody>';
-        data.payments.forEach(function (pay) { html += '<tr><td>' + fmt(pay.amount) + '</td><td>' + pay.paymentMethod + '</td><td>' + (pay.notes || '—') + '</td></tr>'; });
+        data.payments.forEach(function (pay) { html += '<tr><td>' + money(pay.amount) + '</td><td>' + pay.paymentMethod + '</td><td>' + (pay.notes || '—') + '</td></tr>'; });
         html += '</tbody></table>';
       }
       if (canManage && p.status !== 'DRAFT' && p.status !== 'CANCELLED' && p.amountDue > 0) {
         html += '<div class="form-panel"><div class="section-title" style="margin-top:0">Record Payment</div><div class="form-row">'
-          + '<div class="form-field"><label>Amount (Due: ' + fmt(p.amountDue) + ')</label><input type="number" id="paymentAmount" step="0.01"></div>'
+          + '<div class="form-field"><label>Amount (Due: ' + money(p.amountDue) + ') <span class="required">*</span></label><input type="number" id="paymentAmount" step="0.01"></div>'
           + '<div class="form-field"><label>Method</label><select id="paymentMethod">' + PAYMENT_METHODS.map(function (m) { return '<option value="' + m + '">' + m + '</option>'; }).join('') + '</select></div>'
           + '</div><div class="form-actions"><button class="btn" id="submitPayment">Record Payment</button></div>'
           + '<div class="form-error" id="paymentError"></div></div>';
@@ -1357,74 +1385,83 @@
 
       var addLineBtn = document.getElementById('submitAddLine');
       if (addLineBtn) addLineBtn.onclick = function () {
-        var errorEl = document.getElementById('addLineError');
-        errorEl.innerText = '';
-        var qty = parseFloat(document.getElementById('addLineQty').value);
-        var cost = parseFloat(document.getElementById('addLineCost').value);
-        if (!qty || qty <= 0) { errorEl.innerText = 'Quantity must be positive.'; return; }
-        if (isNaN(cost) || cost < 0) { errorEl.innerText = 'Vendor Unit Cost must be a non-negative number.'; return; }
-        callWithSession('addPurchaseLine', {
-          businessId: currentBusinessId, purchaseId: p.purchaseId,
-          input: { variantId: document.getElementById('addLineVariant').value, quantity: qty, purchaseUnitId: document.getElementById('addLineUnit').value, actualVendorUnitCost: cost }
-        }).then(function (result) {
-          if (!result.success) { errorEl.innerText = result.message; return; }
-          renderPurchaseDetail(container, p.purchaseId);
-        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        withButtonBusy(addLineBtn, 'Adding…', function (restore) {
+          var errorEl = document.getElementById('addLineError');
+          errorEl.innerText = '';
+          var qty = parseFloat(document.getElementById('addLineQty').value);
+          var cost = parseFloat(document.getElementById('addLineCost').value);
+          if (!qty || qty <= 0) { errorEl.innerText = 'Quantity must be a positive number.'; restore(); return; }
+          if (isNaN(cost) || cost < 0) { errorEl.innerText = 'Vendor Unit Cost must be a non-negative number.'; restore(); return; }
+          callWithSession('addPurchaseLine', { businessId: currentBusinessId, purchaseId: p.purchaseId, input: { variantId: document.getElementById('addLineVariant').value, quantity: qty, purchaseUnitId: document.getElementById('addLineUnit').value, actualVendorUnitCost: cost } }).then(function (result) {
+            restore();
+            if (!result.success) { showFormError(errorEl, result); return; }
+            renderPurchaseDetail(container, p.purchaseId);
+          }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
+        });
       };
 
       var addCostBtn = document.getElementById('submitAddCost');
       if (addCostBtn) addCostBtn.onclick = function () {
-        var errorEl = document.getElementById('addCostError');
-        errorEl.innerText = '';
-        var amount = parseFloat(document.getElementById('addCostAmount').value);
-        if (isNaN(amount) || amount <= 0) { errorEl.innerText = 'Amount must be positive.'; return; }
-        callWithSession('addAdditionalPurchaseCost', {
-          businessId: currentBusinessId, purchaseId: p.purchaseId,
-          costType: document.getElementById('addCostType').value, amount: amount
-        }).then(function (result) {
-          if (!result.success) { errorEl.innerText = result.message; return; }
-          renderPurchaseDetail(container, p.purchaseId);
-        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        withButtonBusy(addCostBtn, 'Adding…', function (restore) {
+          var errorEl = document.getElementById('addCostError');
+          errorEl.innerText = '';
+          var amount = parseFloat(document.getElementById('addCostAmount').value);
+          if (isNaN(amount) || amount <= 0) { errorEl.innerText = 'Amount must be a positive number.'; restore(); return; }
+          callWithSession('addAdditionalPurchaseCost', { businessId: currentBusinessId, purchaseId: p.purchaseId, costType: document.getElementById('addCostType').value, amount: amount }).then(function (result) {
+            restore();
+            if (!result.success) { showFormError(errorEl, result); return; }
+            renderPurchaseDetail(container, p.purchaseId);
+          }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
+        });
       };
 
       var postBtn = document.getElementById('submitPostPurchase');
       if (postBtn) postBtn.onclick = function () {
         showConfirm('Post this Purchase?', 'Once posted, lines and additional costs can no longer be changed. This cannot be undone.', function () {
-          postBtn.disabled = true; postBtn.innerText = 'Posting…';
-          callWithSession('postPurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
-            if (!result.success) { handleApiError(result); postBtn.disabled = false; postBtn.innerText = 'Post Purchase'; return; }
-            if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
-            showToast('Purchase posted successfully.', 'success');
-            renderPurchaseDetail(container, p.purchaseId);
-          }).catch(function (err) { showToast('Network/server error: ' + err, 'error'); postBtn.disabled = false; postBtn.innerText = 'Post Purchase'; });
+          withButtonBusy(postBtn, 'Posting…', function (restore) {
+            callWithSession('postPurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
+              restore();
+              if (!result.success) { handleApiError(result); return; }
+              invalidateCache('purchases');
+              var posted = result.data;
+              showToast('Purchase posted successfully.\nPurchase ID: ' + posted.purchaseId + '\nTotal: ' + money(posted.grandTotal), 'success');
+              renderPurchaseDetail(container, p.purchaseId);
+            }).catch(function (err) { restore(); showToast('Network error: ' + err, 'error'); });
+          });
         });
       };
 
       var receiveBtn = document.getElementById('submitReceivePurchase');
       if (receiveBtn) receiveBtn.onclick = function () {
         showConfirm('Receive into Inventory?', 'This will add the purchased quantities to your real stock at their landed cost.', function () {
-          receiveBtn.disabled = true; receiveBtn.innerText = 'Receiving…';
-          callWithSession('receivePurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
-            if (!result.success) { handleApiError(result); receiveBtn.disabled = false; receiveBtn.innerText = 'Receive into Inventory'; return; }
-            showToast('Stock received successfully.', 'success');
-            renderPurchaseDetail(container, p.purchaseId);
-          }).catch(function (err) { showToast('Network/server error: ' + err, 'error'); receiveBtn.disabled = false; receiveBtn.innerText = 'Receive into Inventory'; });
+          withButtonBusy(receiveBtn, 'Receiving…', function (restore) {
+            callWithSession('receivePurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
+              restore();
+              if (!result.success) { handleApiError(result); return; }
+              showToast('Stock received successfully.', 'success');
+              renderPurchaseDetail(container, p.purchaseId);
+            }).catch(function (err) { restore(); showToast('Network error: ' + err, 'error'); });
+          });
         });
       };
 
       var paymentBtn = document.getElementById('submitPayment');
       if (paymentBtn) paymentBtn.onclick = function () {
-        var errorEl = document.getElementById('paymentError');
-        errorEl.innerText = '';
-        var amount = parseFloat(document.getElementById('paymentAmount').value);
-        if (!amount || amount <= 0) { errorEl.innerText = 'Amount must be positive.'; return; }
-        callWithSession('recordPurchasePayment', {
-          businessId: currentBusinessId, purchaseId: p.purchaseId, amount: amount, paymentMethod: document.getElementById('paymentMethod').value
-        }).then(function (result) {
-          if (!result.success) { errorEl.innerText = result.message; return; }
-          if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
-          renderPurchaseDetail(container, p.purchaseId);
-        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        var amount = parseFloat((document.getElementById('paymentAmount') || {}).value);
+        if (!amount || amount <= 0) { document.getElementById('paymentError').innerText = 'Amount must be a positive number.'; return; }
+        showConfirm('Record this payment?', 'Recording ' + money(amount) + ' against this purchase.', function () {
+          withButtonBusy(paymentBtn, 'Recording…', function (restore) {
+            var errorEl = document.getElementById('paymentError');
+            errorEl.innerText = '';
+            callWithSession('recordPurchasePayment', { businessId: currentBusinessId, purchaseId: p.purchaseId, amount: amount, paymentMethod: document.getElementById('paymentMethod').value }).then(function (result) {
+              restore();
+              if (!result.success) { showFormError(errorEl, result); return; }
+              invalidateCache('purchases');
+              showToast('Payment recorded successfully.\nAmount: ' + money(amount) + '\nRemaining Due: ' + money(result.data ? (p.amountDue - amount) : null), 'success');
+              renderPurchaseDetail(container, p.purchaseId);
+            }).catch(function (err) { restore(); errorEl.innerText = 'Network error: ' + err; });
+          });
+        });
       };
     }
 
