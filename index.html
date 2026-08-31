@@ -89,7 +89,7 @@
       <div class="nav-item" data-view="customers">Customers</div>
       <div class="nav-item" data-view="vendors">Vendors</div>
       <div class="nav-item" data-view="locations">Locations</div>
-      <div class="nav-item soon" data-view="purchases">Purchases</div>
+      <div class="nav-item" data-view="purchases">Purchases</div>
       <div class="nav-item soon" data-view="inventory">Inventory</div>
       <div class="nav-item soon" data-view="sales">Sales</div>
       <div class="nav-item soon" data-view="returns">Returns</div>
@@ -324,6 +324,7 @@
       if (view === 'customers') { renderCustomers(container); return; }
       if (view === 'vendors') { renderVendors(container); return; }
       if (view === 'locations') { renderLocations(container); return; }
+      if (view === 'purchases') { renderPurchasesList(container); return; }
       if (view !== 'dashboard') {
         container.innerHTML = '<div class="placeholder">This section (' + view + ') is coming in the next build pass.</div>';
         return;
@@ -989,6 +990,296 @@
         };
         wireEntityStatusButtons_(container);
       }
+    }
+
+    // ============================================================
+    // Purchases — the biggest workflow: DRAFT -> lines -> additional
+    // costs -> post -> receive into inventory -> payments. List view
+    // + a separate detail view for one purchase's full lifecycle.
+    // ============================================================
+    var PAYMENT_METHODS = ['CASH', 'BANK', 'CARD', 'MOBILE_PAYMENT', 'CHEQUE', 'OTHER'];
+    var ADDITIONAL_COST_TYPES = ['Freight', 'Customs', 'Loading', 'Insurance', 'Other'];
+    var purchasesPageData = [];
+    var purchasableItemsCache = null; // { businessId: [{variantId, label, unitId}] }
+
+    function renderPurchasesList(container, forceRefresh) {
+      var cached = getCache('purchases');
+      if (cached && !forceRefresh) { purchasesPageData = cached; drawPurchasesListScreen(container); return; }
+      container.innerHTML = '<div class="placeholder">Loading purchases…</div>';
+      Promise.all([
+        callWithSession('listPurchases', { businessId: currentBusinessId }),
+        callWithSession('listVendors', { businessId: currentBusinessId }),
+        callWithSession('listLocations', { businessId: currentBusinessId })
+      ]).then(function (results) {
+        var failed = results.find(function (r) { return !r.success; });
+        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
+        purchasesPageData = { purchases: results[0].data, vendors: results[1].data, locations: results[2].data };
+        setCache('purchases', purchasesPageData);
+        drawPurchasesListScreen(container);
+      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+    }
+
+    function drawPurchasesListScreen(container) {
+      var canManage = currentContext.permissions.indexOf('PURCHASE_MANAGE') !== -1;
+      var d = purchasesPageData;
+      var html = '<div class="header-row"><div></div><div>' + refreshButton_('purchases');
+      if (canManage) html += ' <button class="btn" id="toggleCreatePurchaseForm">+ New Purchase</button>';
+      html += '</div></div>';
+
+      if (canManage) {
+        var hasPrereqs = d.vendors.length > 0 && d.locations.length > 0;
+        html += '<div class="form-panel" id="createPurchaseForm" style="display:none;">';
+        if (!hasPrereqs) {
+          html += '<p style="color:#b5730a">You need at least one Vendor and one Location before starting a Purchase.</p>';
+        } else {
+          html += '<div class="form-row">'
+            + '<div class="form-field"><label>Vendor</label><select id="newPurchaseVendor">' + optionsFor_(d.vendors, 'vendorId', 'vendorName') + '</select></div>'
+            + '<div class="form-field"><label>Location</label><select id="newPurchaseLocation">' + optionsFor_(d.locations, 'locationId', 'locationName') + '</select></div>'
+            + '</div><div class="form-actions"><button class="btn" id="submitCreatePurchase">Start Draft</button>'
+            + '<button class="btn-secondary" id="cancelCreatePurchase">Cancel</button></div>'
+            + '<div class="form-error" id="createPurchaseError"></div>';
+        }
+        html += '</div>';
+      }
+
+      if (d.purchases.length === 0) {
+        html += '<div class="placeholder">No purchases yet.</div>';
+      } else {
+        html += '<table><thead><tr><th>Vendor</th><th>Location</th><th>Status</th><th>Grand Total</th><th></th></tr></thead><tbody>';
+        d.purchases.slice().reverse().forEach(function (p) {
+          var vendor = d.vendors.find(function (v) { return v.vendorId === p.vendorId; });
+          var loc = d.locations.find(function (l) { return l.locationId === p.locationId; });
+          html += '<tr><td>' + (vendor ? vendor.vendorName : p.vendorId) + '</td><td>' + (loc ? loc.locationName : p.locationId) + '</td>'
+            + '<td><span class="status-pill status-' + (p.status === 'POSTED' || p.status === 'PAID' ? 'Active' : (p.status === 'CANCELLED' ? 'Archived' : 'Inactive')) + '">' + p.status + '</span></td>'
+            + '<td>' + fmt(p.grandTotal) + '</td>'
+            + '<td><button class="btn-small" data-open-purchase="' + p.purchaseId + '">Open</button></td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+
+      container.innerHTML = html;
+      var refreshBtn = document.getElementById('refreshBtn_purchases');
+      if (refreshBtn) refreshBtn.onclick = function () { renderPurchasesList(container, true); };
+
+      container.querySelectorAll('[data-open-purchase]').forEach(function (btn) {
+        btn.onclick = function () { renderPurchaseDetail(container, btn.getAttribute('data-open-purchase')); };
+      });
+
+      if (canManage) {
+        var formEl = document.getElementById('createPurchaseForm');
+        var toggleBtn = document.getElementById('toggleCreatePurchaseForm');
+        if (toggleBtn) toggleBtn.onclick = function () { formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none'; };
+        var cancelBtn = document.getElementById('cancelCreatePurchase');
+        if (cancelBtn) cancelBtn.onclick = function () { formEl.style.display = 'none'; };
+        var submitBtn = document.getElementById('submitCreatePurchase');
+        if (submitBtn) submitBtn.onclick = function () {
+          var errorEl = document.getElementById('createPurchaseError');
+          errorEl.innerText = '';
+          callWithSession('createPurchaseDraft', {
+            businessId: currentBusinessId,
+            vendorId: document.getElementById('newPurchaseVendor').value,
+            locationId: document.getElementById('newPurchaseLocation').value
+          }).then(function (result) {
+            if (!result.success) { errorEl.innerText = result.message; return; }
+            if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
+            renderPurchaseDetail(container, result.data.purchaseId);
+          }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+        };
+      }
+    }
+
+    /** Flat list of {variantId, label, unitId} across all products — fetched once per business, cached. See scaling note in the code comment above. */
+    function getPurchasableItems() {
+      if (purchasableItemsCache && purchasableItemsCache.businessId === currentBusinessId) {
+        return Promise.resolve(purchasableItemsCache.items);
+      }
+      return callWithSession('listProducts', { businessId: currentBusinessId }).then(function (productsResult) {
+        if (!productsResult.success) return [];
+        var products = productsResult.data;
+        return Promise.all(products.map(function (p) {
+          return callWithSession('listProductVariants', { businessId: currentBusinessId, productId: p.productId }).then(function (r) {
+            return (r.success ? r.data : []).map(function (v) {
+              return { variantId: v.variantId, label: p.productName + (v.variantName && v.variantName !== 'Default' ? ' — ' + v.variantName : ''), unitId: v.unitId };
+            });
+          });
+        })).then(function (perProduct) {
+          var items = [].concat.apply([], perProduct);
+          purchasableItemsCache = { businessId: currentBusinessId, items: items };
+          return items;
+        });
+      });
+    }
+
+    function renderPurchaseDetail(container, purchaseId) {
+      container.innerHTML = '<div class="placeholder">Loading purchase…</div>';
+      Promise.all([
+        callWithSession('getPurchase', { businessId: currentBusinessId, purchaseId: purchaseId }),
+        callWithSession('listPurchaseLines', { businessId: currentBusinessId, purchaseId: purchaseId }),
+        callWithSession('listAdditionalPurchaseCosts', { businessId: currentBusinessId, purchaseId: purchaseId }),
+        callWithSession('listPurchasePayments', { businessId: currentBusinessId, purchaseId: purchaseId }),
+        callWithSession('listUnits', { businessId: currentBusinessId }),
+        getPurchasableItems()
+      ]).then(function (results) {
+        var apiResults = results.slice(0, 5);
+        var failed = apiResults.find(function (r) { return !r.success; });
+        if (failed) { container.innerHTML = '<div class="placeholder">' + failed.message + '</div>'; return; }
+        drawPurchaseDetailScreen(container, {
+          purchase: apiResults[0].data, lines: apiResults[1].data, additionalCosts: apiResults[2].data,
+          payments: apiResults[3].data, units: apiResults[4].data, purchasableItems: results[5]
+        });
+      }).catch(function (err) { container.innerHTML = '<div class="placeholder">Network/server error: ' + err + '</div>'; });
+    }
+
+    function drawPurchaseDetailScreen(container, data) {
+      var canManage = currentContext.permissions.indexOf('PURCHASE_MANAGE') !== -1;
+      var p = data.purchase;
+      var html = '<div class="header-row"><button class="btn-secondary" id="backToPurchasesList">← Back to Purchases</button>'
+        + '<span class="status-pill status-' + (p.status === 'POSTED' || p.status === 'PAID' ? 'Active' : (p.status === 'CANCELLED' ? 'Archived' : 'Inactive')) + '">' + p.status + '</span></div>';
+
+      html += '<div class="card-grid">'
+        + card('Subtotal', fmt(p.subtotal)) + card('Additional Cost', fmt(p.additionalCostTotal)) + card('Grand Total', fmt(p.grandTotal))
+        + card('Amount Paid', fmt(p.amountPaid)) + card('Amount Due', fmt(p.amountDue), p.amountDue <= 0)
+        + '</div>';
+
+      // Lines
+      html += '<div class="section-title">Lines</div>';
+      if (data.lines.length === 0) {
+        html += '<div class="placeholder">No lines yet.</div>';
+      } else {
+        html += '<table><thead><tr><th>Item</th><th>Qty</th><th>Vendor Unit Cost</th><th>Additional Alloc.</th><th>Landed Unit Cost</th><th>Line Total</th></tr></thead><tbody>';
+        data.lines.forEach(function (l) {
+          var item = data.purchasableItems.find(function (i) { return i.variantId === l.variantId; });
+          html += '<tr><td>' + (item ? item.label : l.variantId) + '</td><td>' + fmt(l.quantity) + '</td><td>' + fmt(l.actualVendorUnitCost) + '</td>'
+            + '<td>' + (l.additionalAllocatedCost != null ? fmt(l.additionalAllocatedCost) : '—') + '</td>'
+            + '<td>' + (l.landedUnitCost != null ? fmt(l.landedUnitCost) : '—') + '</td><td>' + fmt(l.lineTotal) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+
+      if (canManage && p.status === 'DRAFT') {
+        html += '<div class="form-panel"><div class="section-title" style="margin-top:0">Add Line</div><div class="form-row">'
+          + '<div class="form-field"><label>Item</label><select id="addLineVariant">' + optionsFor_(data.purchasableItems, 'variantId', 'label') + '</select></div>'
+          + '<div class="form-field"><label>Quantity</label><input type="number" id="addLineQty" step="0.01"></div>'
+          + '<div class="form-field"><label>Unit</label><select id="addLineUnit">' + optionsFor_(data.units, 'unitId', 'unitName') + '</select></div>'
+          + '<div class="form-field"><label>Vendor Unit Cost</label><input type="number" id="addLineCost" step="0.01"></div>'
+          + '</div><div class="form-actions"><button class="btn" id="submitAddLine">Add Line</button></div>'
+          + '<div class="form-error" id="addLineError"></div></div>';
+      }
+
+      // Additional Costs
+      html += '<div class="section-title">Additional Costs</div>';
+      if (data.additionalCosts.length === 0) {
+        html += '<div class="placeholder">None yet.</div>';
+      } else {
+        html += '<table><thead><tr><th>Type</th><th>Amount</th></tr></thead><tbody>';
+        data.additionalCosts.forEach(function (c) { html += '<tr><td>' + c.costType + '</td><td>' + fmt(c.amount) + '</td></tr>'; });
+        html += '</tbody></table>';
+      }
+      if (canManage && p.status === 'DRAFT') {
+        html += '<div class="form-panel"><div class="section-title" style="margin-top:0">Add Additional Cost</div><div class="form-row">'
+          + '<div class="form-field"><label>Type</label><select id="addCostType">' + ADDITIONAL_COST_TYPES.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></div>'
+          + '<div class="form-field"><label>Amount</label><input type="number" id="addCostAmount" step="0.01"></div>'
+          + '</div><div class="form-actions"><button class="btn" id="submitAddCost">Add Cost</button></div>'
+          + '<div class="form-error" id="addCostError"></div></div>';
+      }
+
+      if (canManage && p.status === 'DRAFT') {
+        html += '<div class="form-actions" style="margin:16px 0;"><button class="btn" id="submitPostPurchase"' + (data.lines.length === 0 ? ' disabled' : '') + '>Post Purchase</button></div>'
+          + '<div class="form-error" id="postPurchaseError"></div>';
+      }
+      if (canManage && (p.status === 'POSTED' || p.status === 'PARTIALLY_PAID' || p.status === 'PAID')) {
+        html += '<div class="form-actions" style="margin:16px 0;"><button class="btn-secondary" id="submitReceivePurchase">Receive into Inventory</button></div>'
+          + '<div class="form-error" id="receivePurchaseError"></div>';
+      }
+
+      // Payments
+      html += '<div class="section-title">Payments</div>';
+      if (data.payments.length === 0) {
+        html += '<div class="placeholder">No payments yet.</div>';
+      } else {
+        html += '<table><thead><tr><th>Amount</th><th>Method</th><th>Notes</th></tr></thead><tbody>';
+        data.payments.forEach(function (pay) { html += '<tr><td>' + fmt(pay.amount) + '</td><td>' + pay.paymentMethod + '</td><td>' + (pay.notes || '—') + '</td></tr>'; });
+        html += '</tbody></table>';
+      }
+      if (canManage && p.status !== 'DRAFT' && p.status !== 'CANCELLED' && p.amountDue > 0) {
+        html += '<div class="form-panel"><div class="section-title" style="margin-top:0">Record Payment</div><div class="form-row">'
+          + '<div class="form-field"><label>Amount (Due: ' + fmt(p.amountDue) + ')</label><input type="number" id="paymentAmount" step="0.01"></div>'
+          + '<div class="form-field"><label>Method</label><select id="paymentMethod">' + PAYMENT_METHODS.map(function (m) { return '<option value="' + m + '">' + m + '</option>'; }).join('') + '</select></div>'
+          + '</div><div class="form-actions"><button class="btn" id="submitPayment">Record Payment</button></div>'
+          + '<div class="form-error" id="paymentError"></div></div>';
+      }
+
+      container.innerHTML = html;
+
+      document.getElementById('backToPurchasesList').onclick = function () { renderPurchasesList(container, true); };
+
+      var addLineBtn = document.getElementById('submitAddLine');
+      if (addLineBtn) addLineBtn.onclick = function () {
+        var errorEl = document.getElementById('addLineError');
+        errorEl.innerText = '';
+        var qty = parseFloat(document.getElementById('addLineQty').value);
+        var cost = parseFloat(document.getElementById('addLineCost').value);
+        if (!qty || qty <= 0) { errorEl.innerText = 'Quantity must be positive.'; return; }
+        if (isNaN(cost) || cost < 0) { errorEl.innerText = 'Vendor Unit Cost must be a non-negative number.'; return; }
+        callWithSession('addPurchaseLine', {
+          businessId: currentBusinessId, purchaseId: p.purchaseId,
+          input: { variantId: document.getElementById('addLineVariant').value, quantity: qty, purchaseUnitId: document.getElementById('addLineUnit').value, actualVendorUnitCost: cost }
+        }).then(function (result) {
+          if (!result.success) { errorEl.innerText = result.message; return; }
+          renderPurchaseDetail(container, p.purchaseId);
+        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+      };
+
+      var addCostBtn = document.getElementById('submitAddCost');
+      if (addCostBtn) addCostBtn.onclick = function () {
+        var errorEl = document.getElementById('addCostError');
+        errorEl.innerText = '';
+        var amount = parseFloat(document.getElementById('addCostAmount').value);
+        if (isNaN(amount) || amount <= 0) { errorEl.innerText = 'Amount must be positive.'; return; }
+        callWithSession('addAdditionalPurchaseCost', {
+          businessId: currentBusinessId, purchaseId: p.purchaseId,
+          costType: document.getElementById('addCostType').value, amount: amount
+        }).then(function (result) {
+          if (!result.success) { errorEl.innerText = result.message; return; }
+          renderPurchaseDetail(container, p.purchaseId);
+        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+      };
+
+      var postBtn = document.getElementById('submitPostPurchase');
+      if (postBtn) postBtn.onclick = function () {
+        var errorEl = document.getElementById('postPurchaseError');
+        errorEl.innerText = '';
+        callWithSession('postPurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
+          if (!result.success) { errorEl.innerText = result.message; return; }
+          if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
+          renderPurchaseDetail(container, p.purchaseId);
+        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+      };
+
+      var receiveBtn = document.getElementById('submitReceivePurchase');
+      if (receiveBtn) receiveBtn.onclick = function () {
+        var errorEl = document.getElementById('receivePurchaseError');
+        errorEl.innerText = '';
+        callWithSession('receivePurchase', { businessId: currentBusinessId, purchaseId: p.purchaseId }).then(function (result) {
+          if (!result.success) { errorEl.innerText = result.message; return; }
+          renderPurchaseDetail(container, p.purchaseId);
+        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+      };
+
+      var paymentBtn = document.getElementById('submitPayment');
+      if (paymentBtn) paymentBtn.onclick = function () {
+        var errorEl = document.getElementById('paymentError');
+        errorEl.innerText = '';
+        var amount = parseFloat(document.getElementById('paymentAmount').value);
+        if (!amount || amount <= 0) { errorEl.innerText = 'Amount must be positive.'; return; }
+        callWithSession('recordPurchasePayment', {
+          businessId: currentBusinessId, purchaseId: p.purchaseId, amount: amount, paymentMethod: document.getElementById('paymentMethod').value
+        }).then(function (result) {
+          if (!result.success) { errorEl.innerText = result.message; return; }
+          if (viewCache[currentBusinessId]) delete viewCache[currentBusinessId].purchases;
+          renderPurchaseDetail(container, p.purchaseId);
+        }).catch(function (err) { errorEl.innerText = 'Network/server error: ' + err; });
+      };
     }
 
     // Run on initial page load.
